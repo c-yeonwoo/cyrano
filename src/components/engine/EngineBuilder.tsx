@@ -14,6 +14,7 @@ import {
 import { presetByKey, bucketFromPreset } from "@/lib/catalog";
 import { CATEGORY_META, type Bucket } from "@/lib/types";
 import { formatKRW, clampPct } from "@/lib/format";
+import { renderShareCard, shareOrDownload } from "@/lib/shareCard";
 import { Card, Button, Badge, EmptyState, TextInput, AssumptionNote, StatCard } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { AssetChart } from "@/components/AssetChart";
@@ -45,6 +46,7 @@ export function EngineBuilder() {
   const [scenarioName, setScenarioName] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [sens, setSens] = useState<SensitivityKey>("base");
+  const [sharing, setSharing] = useState(false);
 
   const monthlyIncome = snapshot.incomeSources.reduce((s, i) => s + i.monthly, 0);
   const sum = ratioSum(buckets);
@@ -109,6 +111,27 @@ export function EngineBuilder() {
     const key = e.dataTransfer.getData("application/bucket-preset");
     const preset = presetByKey(key);
     if (preset) addBucket(bucketFromPreset(preset, buckets.length));
+  };
+
+  const handleShare = async () => {
+    setSharing(true);
+    try {
+      const blob = await renderShareCard({
+        curve: projection.curve,
+        goalNetworth: vision?.goalNetworth,
+        targetYears,
+        atTargetNetWorth: atTarget.totalNetWorth,
+        lowNetWorth: lowAt.totalNetWorth,
+        highNetWorth: highAt.totalNetWorth,
+        targetReachYear: projection.targetReachYear,
+        achievementPct: projection.achievementPct,
+      });
+      await shareOrDownload(blob);
+    } catch (e) {
+      console.error("[share]", e);
+    } finally {
+      setSharing(false);
+    }
   };
 
   const duplicate = (b: Bucket) => {
@@ -354,6 +377,14 @@ export function EngineBuilder() {
             <span className="text-xs text-ink-400">
               {scenarios.length}/{MAX_SCENARIOS_LIMIT}
             </span>
+            <Button
+              variant="outline"
+              className="ml-auto"
+              onClick={handleShare}
+              disabled={buckets.length === 0 || sharing}
+            >
+              <Icon name="image" size={15} /> {sharing ? "생성 중…" : "결과 공유"}
+            </Button>
           </div>
           {scenarios.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2">
