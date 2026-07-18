@@ -7,6 +7,7 @@ import { formatKRW } from "@/lib/format";
 interface Props {
   curve: YearPoint[];
   compareCurve?: YearPoint[] | null;
+  band?: { lower: YearPoint[]; upper: YearPoint[] } | null;
   goalNetworth?: number;
   targetReachYear?: number | null;
   height?: number;
@@ -19,6 +20,7 @@ const W = 720;
 export function AssetChart({
   curve,
   compareCurve,
+  band,
   goalNetworth,
   targetReachYear,
   height = 260,
@@ -39,6 +41,7 @@ export function AssetChart({
   const maxVal = Math.max(
     ...curve.map((p) => p.totalNetWorth),
     ...(compareCurve ?? []).map((p) => p.totalNetWorth),
+    ...(band?.upper ?? []).map((p) => p.totalNetWorth),
     goalNetworth ?? 0,
     1,
   );
@@ -53,6 +56,21 @@ export function AssetChart({
   const totalPts = line((p) => p.totalNetWorth);
   const lockedPts = line((p) => p.lockedAssets);
   const areaPts = `${padL},${y(0)} ${totalPts} ${x(years)},${y(0)}`;
+
+  const bandPts =
+    band && band.upper.length > 1
+      ? band.upper
+          .filter((p) => p.year <= years)
+          .map((p) => `${x(p.year)},${y(p.totalNetWorth)}`)
+          .join(" ") +
+        " " +
+        band.lower
+          .filter((p) => p.year <= years)
+          .slice()
+          .reverse()
+          .map((p) => `${x(p.year)},${y(p.totalNetWorth)}`)
+          .join(" ")
+      : null;
 
   const onMove = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = ref.current?.getBoundingClientRect();
@@ -80,6 +98,9 @@ export function AssetChart({
             <stop offset="100%" stopColor="#4f46e5" stopOpacity="0" />
           </linearGradient>
         </defs>
+
+        {/* 민감도 밴드 (보수~공격 범위) */}
+        {bandPts && <polygon points={bandPts} fill="#4f46e5" fillOpacity="0.09" />}
 
         {/* y grid */}
         {!compact &&

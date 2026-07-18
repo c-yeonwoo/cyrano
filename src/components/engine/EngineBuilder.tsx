@@ -3,7 +3,14 @@
 import { useMemo, useState } from "react";
 import { useProfile, MAX_SCENARIOS_LIMIT } from "@/lib/store/useProfile";
 import { suggestEngineFromSnapshot, DEFAULT_SNAPSHOT } from "@/lib/store/defaults";
-import { projectEngine, ratioSum, needsRealityNudge } from "@/lib/engine";
+import {
+  projectEngine,
+  ratioSum,
+  needsRealityNudge,
+  adjustReturns,
+  SENSITIVITY,
+  type SensitivityKey,
+} from "@/lib/engine";
 import { presetByKey, bucketFromPreset } from "@/lib/catalog";
 import { CATEGORY_META, type Bucket } from "@/lib/types";
 import { formatKRW, clampPct } from "@/lib/format";
@@ -37,23 +44,43 @@ export function EngineBuilder() {
   const [compareId, setCompareId] = useState<string | null>(null);
   const [scenarioName, setScenarioName] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [sens, setSens] = useState<SensitivityKey>("base");
 
   const monthlyIncome = snapshot.incomeSources.reduce((s, i) => s + i.monthly, 0);
   const sum = ratioSum(buckets);
   const sumOk = Math.round(sum) === 100;
 
   const horizon = Math.max(vision?.targetYears ?? 15, 30);
+
+  // 선택한 가정(보수/기본/공격)을 반영한 메인 곡선
   const projection = useMemo(
     () =>
       projectEngine({
         snapshot,
-        buckets,
+        buckets: adjustReturns(buckets, SENSITIVITY[sens].deltaPp),
         horizonYears: horizon,
         goalNetworth: vision?.goalNetworth,
         goalPassiveIncome: vision?.goalPassiveIncome,
       }),
-    [snapshot, buckets, horizon, vision?.goalNetworth, vision?.goalPassiveIncome],
+    [snapshot, buckets, sens, horizon, vision?.goalNetworth, vision?.goalPassiveIncome],
   );
+
+  // 민감도 밴드: 보수~공격 범위 (항상 표시)
+  const band = useMemo(() => {
+    const low = projectEngine({
+      snapshot,
+      buckets: adjustReturns(buckets, SENSITIVITY.conservative.deltaPp),
+      horizonYears: horizon,
+      goalNetworth: vision?.goalNetworth,
+    });
+    const high = projectEngine({
+      snapshot,
+      buckets: adjustReturns(buckets, SENSITIVITY.aggressive.deltaPp),
+      horizonYears: horizon,
+      goalNetworth: vision?.goalNetworth,
+    });
+    return { low, high };
+  }, [snapshot, buckets, horizon, vision?.goalNetworth]);
 
   const compareProjection = useMemo(() => {
     const sc = scenarios.find((x) => x.id === compareId);
@@ -68,9 +95,11 @@ export function EngineBuilder() {
 
   const selected = buckets.find((b) => b.id === selectedId) ?? null;
   const targetYears = vision?.targetYears ?? 15;
-  const atTarget =
-    projection.curve.find((p) => p.year === targetYears) ??
-    projection.curve[projection.curve.length - 1];
+  const atYear = (curve: typeof projection.curve) =>
+    curve.find((p) => p.year === targetYears) ?? curve[curve.length - 1];
+  const atTarget = atYear(projection.curve);
+  const lowAt = atYear(band.low.curve);
+  const highAt = atYear(band.high.curve);
 
   const nudge = vision ? needsRealityNudge(projection.targetReachYear, targetYears) : false;
 
@@ -223,17 +252,41 @@ export function EngineBuilder() {
 
       {/* 결과 패널 */}
       <Card>
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 text-sm font-bold text-ink-700">
             <Icon name="trending-up" size={16} className="text-brand-600" />
             복리 시뮬 결과
           </div>
-          {compareId && (
-            <Badge tone="slate">
-              점선 = {scenarios.find((s) => s.id === compareId)?.name} 비교
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {compareId && (
+              <Badge tone="slate">
+                점선 = {scenarios.find((s) => s.id === compareId)?.name} 비교
+              </Badge>
+            )}
+            {/* 수익률 가정 프리셋 */}
+            <div className="flex rounded-lg border border-ink-200 p-0.5 text-xs">
+              {(["conservative", "base", "aggressive"] as SensitivityKey[]).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setSens(k)}
+                  className={
+                    "rounded-md px-2.5 py-1 font-semibold transition-colors " +
+                    (sens === k ? "bg-brand-600 text-white" : "text-ink-500 hover:bg-ink-100")
+                  }
+                >
+                  {SENSITIVITY[k].label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
+
+        <p className="mb-3 text-xs text-ink-400">
+          수익률 가정: {SENSITIVITY[sens].label}
+          {SENSITIVITY[sens].deltaPp !== 0 &&
+            ` (기대수익률 ${SENSITIVITY[sens].deltaPp > 0 ? "+" : ""}${SENSITIVITY[sens].deltaPp}%p)`}
+          . 음영은 보수~공격 범위입니다. 가정이 바뀌면 결과가 이만큼 달라져요.
+        </p>
 
         {nudge && (
           <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
@@ -249,6 +302,7 @@ export function EngineBuilder() {
           <AssetChart
             curve={projection.curve}
             compareCurve={compareProjection?.curve ?? null}
+            band={{ lower: band.low.curve, upper: band.high.curve }}
             goalNetworth={vision?.goalNetworth}
             targetReachYear={projection.targetReachYear}
             height={260}
@@ -257,7 +311,7 @@ export function EngineBuilder() {
             <StatCard
               label={`${targetYears}년 뒤 예상 순자산`}
               value={formatKRW(atTarget.totalNetWorth)}
-              sub={atTarget.lockedAssets > 0 ? `잠긴자산 ${formatKRW(atTarget.lockedAssets)} 포함` : undefined}
+              sub={`범위 ${formatKRW(lowAt.totalNetWorth)} ~ ${formatKRW(highAt.totalNetWorth)}`}
             />
             <StatCard
               label="목표 도달까지"

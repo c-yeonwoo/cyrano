@@ -203,6 +203,33 @@ export function ratioSum(buckets: Bucket[]): number {
   return buckets.reduce((s, b) => s + (b.ratioPct || 0), 0);
 }
 
+/**
+ * 수익률 가정 민감도.
+ * 투자·저축 버킷의 기대 수익률에 ±delta(%p)를 적용해 '보수/기본/공격' 시나리오를 만든다.
+ * 목적: 단일 수익률로 생기는 '거짓 확신'을 방지하고 결과의 폭(밴드)을 정직하게 보여준다.
+ */
+export type SensitivityKey = "conservative" | "base" | "aggressive";
+
+export const SENSITIVITY: Record<SensitivityKey, { label: string; deltaPp: number }> = {
+  conservative: { label: "보수", deltaPp: -3 },
+  base: { label: "기본", deltaPp: 0 },
+  aggressive: { label: "공격", deltaPp: 3 },
+};
+
+/** 투자/저축 버킷의 기대 수익률을 deltaPp 만큼 조정 (0% 하한, 실현≤기대). */
+export function adjustReturns(buckets: Bucket[], deltaPp: number): Bucket[] {
+  if (deltaPp === 0) return buckets;
+  return buckets.map((b) => {
+    if (b.category === "spend") return b;
+    const exp = Math.max(0, b.expectedAnnualReturnPct + deltaPp);
+    return {
+      ...b,
+      expectedAnnualReturnPct: exp,
+      realizedYieldPct: Math.min(b.realizedYieldPct, exp),
+    };
+  });
+}
+
 /** ETA·달성률 넛지 판단 (§A 극단값) */
 export function needsRealityNudge(
   targetReachYear: number | null,

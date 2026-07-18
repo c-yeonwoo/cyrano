@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { computeStage, computeMetrics } from "./stage";
-import { projectEngine, ratioSum, needsRealityNudge } from "./projection";
+import { projectEngine, ratioSum, needsRealityNudge, adjustReturns, SENSITIVITY } from "./projection";
 import type { Bucket, FinancialSnapshot } from "../types";
 
 function snapshot(overrides: Partial<FinancialSnapshot> = {}): FinancialSnapshot {
@@ -133,6 +133,35 @@ describe("projectEngine", () => {
     expect(r.achievementPct).toBeCloseTo(6, 0); // 3000/50000
     expect(r.targetReachYear).not.toBeNull();
     expect(r.targetReachYear! > 0).toBe(true);
+  });
+});
+
+describe("adjustReturns (민감도)", () => {
+  const buckets: Bucket[] = [
+    bucket({ category: "invest", name: "주식", ratioPct: 60, expectedAnnualReturnPct: 8, realizedYieldPct: 2 }),
+    bucket({ category: "save", name: "비상금", ratioPct: 20, expectedAnnualReturnPct: 3 }),
+    bucket({ category: "spend", name: "지출", ratioPct: 20 }),
+  ];
+
+  it("delta 0이면 변화 없음", () => {
+    expect(adjustReturns(buckets, 0)).toBe(buckets);
+  });
+
+  it("보수(-3)는 기대수익률을 낮추고 0% 하한, 지출 버킷은 불변", () => {
+    const c = adjustReturns(buckets, SENSITIVITY.conservative.deltaPp);
+    expect(c[0].expectedAnnualReturnPct).toBe(5); // 8-3
+    expect(c[1].expectedAnnualReturnPct).toBe(0); // 3-3
+    expect(c[2].expectedAnnualReturnPct).toBe(0); // spend 불변
+    expect(c[0].realizedYieldPct).toBeLessThanOrEqual(c[0].expectedAnnualReturnPct);
+  });
+
+  it("밴드 순서: 보수 ≤ 기본 ≤ 공격 (최종 순자산)", () => {
+    const s = snapshot();
+    const low = projectEngine({ snapshot: s, buckets: adjustReturns(buckets, -3), horizonYears: 20 });
+    const base = projectEngine({ snapshot: s, buckets, horizonYears: 20 });
+    const high = projectEngine({ snapshot: s, buckets: adjustReturns(buckets, 3), horizonYears: 20 });
+    expect(low.finalNetWorth).toBeLessThanOrEqual(base.finalNetWorth);
+    expect(base.finalNetWorth).toBeLessThanOrEqual(high.finalNetWorth);
   });
 });
 
