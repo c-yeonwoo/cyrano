@@ -94,13 +94,13 @@ export function AssetChart({
       >
         <defs>
           <linearGradient id="areaG" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#4f46e5" stopOpacity="0.22" />
-            <stop offset="100%" stopColor="#4f46e5" stopOpacity="0" />
+            <stop offset="0%" stopColor="#0f172a" stopOpacity="0.22" />
+            <stop offset="100%" stopColor="#0f172a" stopOpacity="0" />
           </linearGradient>
         </defs>
 
         {/* 민감도 밴드 (보수~공격 범위) */}
-        {bandPts && <polygon points={bandPts} fill="#4f46e5" fillOpacity="0.09" />}
+        {bandPts && <polygon points={bandPts} fill="#0f172a" fillOpacity="0.09" />}
 
         {/* y grid */}
         {!compact &&
@@ -130,7 +130,7 @@ export function AssetChart({
               x2={W - padR}
               y1={y(goalNetworth)}
               y2={y(goalNetworth)}
-              stroke="#ef4444"
+              stroke="#b8860b"
               strokeWidth="1.2"
               strokeDasharray="5 4"
             />
@@ -138,7 +138,7 @@ export function AssetChart({
               x={W - padR}
               y={y(goalNetworth) - 4}
               fontSize="9"
-              fill="#ef4444"
+              fill="#b8860b"
               textAnchor="end"
             >
               목표 {formatKRW(goalNetworth)}
@@ -165,7 +165,7 @@ export function AssetChart({
         <polyline
           points={totalPts}
           fill="none"
-          stroke="#4f46e5"
+          stroke="#0f172a"
           strokeWidth="2.4"
           strokeLinejoin="round"
         />
@@ -173,7 +173,7 @@ export function AssetChart({
           <polyline
             points={lockedPts}
             fill="none"
-            stroke="#a855f7"
+            stroke="#0d9488"
             strokeWidth="1.4"
             strokeDasharray="4 3"
           />
@@ -186,7 +186,7 @@ export function AssetChart({
             x2={x(targetReachYear)}
             y1={padT}
             y2={H - padB}
-            stroke="#10b981"
+            stroke="#cbd5e1"
             strokeWidth="1"
             strokeDasharray="3 3"
           />
@@ -217,7 +217,7 @@ export function AssetChart({
               y2={H - padB}
               stroke="#c7cad1"
             />
-            <circle cx={x(hp.year)} cy={y(hp.totalNetWorth)} r="4" fill="#4f46e5" />
+            <circle cx={x(hp.year)} cy={y(hp.totalNetWorth)} r="4" fill="#0f172a" />
           </>
         )}
       </svg>

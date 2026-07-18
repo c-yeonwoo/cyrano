@@ -57,7 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Icon name={n.icon} size={18} />
                 {n.label}
                 {n.core && (
-                  <span className="ml-auto rounded-full bg-invest-100 px-1.5 text-[10px] font-semibold text-invest-700">
+                  <span className="ml-auto rounded-full bg-gold-100 px-1.5 text-[10px] font-semibold text-gold-600">
                     핵심
                   </span>
                 )}

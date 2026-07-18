@@ -45,32 +45,32 @@ export default function HomePage() {
       <h1 className="text-xl font-extrabold text-ink-800">홈 · 안녕하세요</h1>
 
       {/* Hero */}
-      <Card className="border-brand-200 bg-brand-50">
+      <div className="rounded-xl bg-brand-800 p-5 text-white">
         <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
           <div>
-            <div className="text-xs text-brand-500">현재 위치</div>
-            <div className="mt-1 text-2xl font-extrabold text-brand-700">
+            <div className="text-xs text-white/50">현재 위치</div>
+            <div className="mt-1 text-2xl font-extrabold text-white">
               {stage.stage} / 8 단계 · {STAGE_NAMES[stage.stage]}
             </div>
             {(whyLine || firstScene) && (
-              <div className="mt-1 flex items-center gap-1.5 text-sm text-brand-600">
-                <Icon name="target" size={15} className="shrink-0" />
+              <div className="mt-1.5 flex items-center gap-1.5 text-sm text-white/70">
+                <Icon name="target" size={15} className="shrink-0 text-gold-400" />
                 {whyLine || firstScene?.text}
                 {vision && ` — 목표 순자산 ${formatKRW(vision.goalNetworth)}`}
               </div>
             )}
           </div>
           {vision && projection && (
-            <div className="flex gap-6 border-t border-brand-200 pt-3 sm:border-l sm:border-t-0 sm:pt-0 sm:pl-6">
+            <div className="flex gap-6 border-t border-white/15 pt-3 sm:border-l sm:border-t-0 sm:pt-0 sm:pl-6">
               <div>
-                <div className="text-[11px] text-brand-400">목표 대비</div>
-                <div className="tnum text-xl font-bold text-brand-700">
+                <div className="text-[11px] text-white/50">목표 대비</div>
+                <div className="tnum text-xl font-bold text-gold-400">
                   {formatPct(projection.achievementPct, 1)}
                 </div>
               </div>
               <div>
-                <div className="text-[11px] text-brand-400">예상 ETA</div>
-                <div className="tnum text-xl font-bold text-brand-700">
+                <div className="text-[11px] text-white/50">예상 ETA</div>
+                <div className="tnum text-xl font-bold text-gold-400">
                   {projection.targetReachYear != null
                     ? `약 ${projection.targetReachYear}년`
                     : "재조정 필요"}
@@ -79,7 +79,7 @@ export default function HomePage() {
             </div>
           )}
         </div>
-      </Card>
+      </div>
 
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
         {/* 엔진 미니뷰 */}

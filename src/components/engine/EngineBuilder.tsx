@@ -170,7 +170,7 @@ export function EngineBuilder() {
         )}
 
         {/* 메인 — 캔버스 + 결과 (동일 너비) */}
-        <div className="min-w-0 flex-1 space-y-4">
+        <div className="relative min-w-0 flex-1 space-y-4">
           <EngineCanvas
             buckets={buckets}
             monthlyIncome={monthlyIncome}
@@ -327,41 +327,41 @@ export function EngineBuilder() {
             <AssumptionNote />
           </div>
           </Card>
-        </div>
 
-        {/* 인스펙터 — 노드 클릭 시에만 (데스크톱 우측) */}
-        {selected && (
-          <Card className="hidden shrink-0 lg:block lg:w-[268px]">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-bold text-ink-800">버킷 편집</span>
-              <button
-                onClick={() => setSelectedId(null)}
-                aria-label="닫기"
-                className="text-ink-400 hover:text-ink-700"
+          {/* 인스펙터 — 노드 클릭 시에만 (데스크톱: 캔버스 위 오버레이 → 캔버스가 줄지 않음) */}
+          {selected && (
+            <Card className="absolute right-0 top-0 z-20 hidden max-h-full w-[264px] overflow-y-auto border-ink-300 shadow-xl lg:block">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-sm font-bold text-ink-800">버킷 편집</span>
+                <button
+                  onClick={() => setSelectedId(null)}
+                  aria-label="닫기"
+                  className="text-ink-400 hover:text-ink-700"
+                >
+                  <Icon name="x" size={16} />
+                </button>
+              </div>
+              <Inspector
+                bucket={selected}
+                onChange={(patch) => updateBucket(selected.id, patch)}
+                onDelete={() => {
+                  removeBucket(selected.id);
+                  setSelectedId(null);
+                }}
+                onDuplicate={() => duplicate(selected)}
+              />
+              <div
+                className={`mt-4 rounded-lg border px-3 py-2 text-center text-xs font-semibold ${
+                  sumOk
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700"
+                }`}
               >
-                <Icon name="x" size={16} />
-              </button>
-            </div>
-            <Inspector
-              bucket={selected}
-              onChange={(patch) => updateBucket(selected.id, patch)}
-              onDelete={() => {
-                removeBucket(selected.id);
-                setSelectedId(null);
-              }}
-              onDuplicate={() => duplicate(selected)}
-            />
-            <div
-              className={`mt-4 rounded-lg border px-3 py-2 text-center text-xs font-semibold ${
-                sumOk
-                  ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                  : "border-amber-200 bg-amber-50 text-amber-700"
-              }`}
-            >
-              비율 합계: {Math.round(sum)}% {sumOk ? "✓" : sum > 100 ? "초과" : "미달"}
-            </div>
-          </Card>
-        )}
+                비율 합계: {Math.round(sum)}% {sumOk ? "✓" : sum > 100 ? "초과" : "미달"}
+              </div>
+            </Card>
+          )}
+        </div>
       </div>
 
       {/* 인스펙터 — 모바일 바텀시트 */}

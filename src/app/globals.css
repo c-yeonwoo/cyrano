@@ -1,28 +1,32 @@
 @import "tailwindcss";
 
 /* ============================================================
-   Cyrano — Design Tokens
-   브랜드: Cyrano (당신의 자산 설계 코치)
+   시라노 — Design Tokens
+   브랜드: 시라노 (당신의 자산 설계 코치) · Black & Gold
    원칙: 신뢰감 있는 핀테크 + 20대 친근함. 절제된 색, 명확한 위계, 데이터 우선.
    ============================================================ */
 
 @theme {
-  /* ---- Brand (Plum · 코치/프리미엄) ---- */
-  --color-brand-50: #fbf1f7;
-  --color-brand-100: #f6e0ee;
-  --color-brand-200: #edbbd8;
-  --color-brand-300: #e191be;
-  --color-brand-400: #ce5e9c;
-  --color-brand-500: #b23d7e;
-  --color-brand-600: #9d2c6b;
-  --color-brand-700: #7c2d5b;
-  --color-brand-800: #5f2145;
-  --color-brand-900: #431730;
+  /* ---- Brand (Black · 프리미엄/중립 · 카테고리색과 충돌 0) ---- */
+  --color-brand-50: #f6f6f7;
+  --color-brand-100: #e8e8ea;
+  --color-brand-200: #d0d1d4;
+  --color-brand-300: #a9abb0;
+  --color-brand-400: #74777e;
+  --color-brand-500: #45484f;
+  --color-brand-600: #26282e;
+  --color-brand-700: #17181c;
+  --color-brand-800: #0e0f12;
+  --color-brand-900: #070809;
 
-  /* ---- Gold accent (절제 사용 · '돈/목표' 강조) ---- */
-  --color-gold-50: #fbf4e4;
-  --color-gold-400: #d4a64a;
-  --color-gold-600: #b8862f;
+  /* ---- Gold accent (브랜드 강조 · 목표/돈) ---- */
+  --color-gold-50: #faf6ea;
+  --color-gold-100: #f2e6c2;
+  --color-gold-200: #e6d190;
+  --color-gold-300: #d8b95f;
+  --color-gold-400: #c9a24a;
+  --color-gold-500: #ad8531;
+  --color-gold-600: #8a6a20;
 
   /* ---- Ink (중립 · 텍스트/보더/배경) ---- */
   --color-ink-50: #f8fafc;
@@ -60,8 +64,8 @@
   --color-success: #059669;
   --color-warning: #d97706;
   --color-danger: #dc2626;
-  --color-locked: #0d9488; /* 잠긴 자산(연금·IRP) — plum과 구분되는 teal */
-  --color-goal: #dc2626; /* 목표선 — plum과 구분되는 red */
+  --color-locked: #0d9488; /* 잠긴 자산(연금·IRP) — teal */
+  --color-goal: #b8860b; /* 목표선 — 골드 (골든 타깃) */
 
   /* ---- Radius ---- */
   --radius-card: 1rem; /* 16px */

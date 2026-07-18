@@ -27,10 +27,11 @@ export async function renderShareCard(d: ShareCardData): Promise<Blob> {
   const ctx = canvas.getContext("2d")!;
   ctx.scale(dpr, dpr);
 
-  const brand = "#4f46e5";
+  const brand = "#17181c";
+  const gold = "#c9a24a";
   const ink900 = "#0f172a";
   const ink400 = "#94a3b8";
-  const goal = "#e11d48";
+  const goal = "#b8860b";
 
   // 배경
   ctx.fillStyle = "#ffffff";
@@ -47,15 +48,15 @@ export async function renderShareCard(d: ShareCardData): Promise<Blob> {
   ctx.moveTo(76, 100);
   ctx.bezierCurveTo(86, 100, 92, 86, 100, 76);
   ctx.stroke();
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = gold;
   ctx.beginPath();
-  ctx.arc(100, 76, 4, 0, Math.PI * 2);
+  ctx.arc(100, 76, 4.5, 0, Math.PI * 2);
   ctx.fill();
 
   ctx.textBaseline = "alphabetic";
   ctx.fillStyle = ink900;
   ctx.font = "800 34px ui-sans-serif, system-ui, 'Apple SD Gothic Neo', sans-serif";
-  ctx.fillText("Cyrano", 128, 92);
+  ctx.fillText("시라노", 128, 92);
   ctx.fillStyle = ink400;
   ctx.font = "500 20px ui-sans-serif, system-ui, sans-serif";
   ctx.fillText("자산 설계 코치", 128, 116);
@@ -99,10 +100,10 @@ export async function renderShareCard(d: ShareCardData): Promise<Blob> {
   ctx.font = "700 24px ui-sans-serif, system-ui, sans-serif";
   for (const c of chips) {
     const w = ctx.measureText(c).width + 40;
-    ctx.fillStyle = "#eef2ff";
+    ctx.fillStyle = "#f2e6c2";
     roundRect(ctx, chipX, chipY, w, 52, 26);
     ctx.fill();
-    ctx.fillStyle = "#4338ca";
+    ctx.fillStyle = "#8a6a20";
     ctx.fillText(c, chipX + 20, chipY + 34);
     chipX += w + 14;
   }
@@ -208,7 +209,7 @@ export async function shareOrDownload(blob: Blob, filename = "cyrano-result.png"
   };
   if (nav.canShare?.({ files: [file] }) && navigator.share) {
     try {
-      await navigator.share({ files: [file], title: "Cyrano 결과" });
+      await navigator.share({ files: [file], title: "시라노 결과" });
       return;
     } catch {
       // 취소 시 폴백 없이 종료
