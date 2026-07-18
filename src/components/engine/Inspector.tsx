@@ -2,6 +2,7 @@
 
 import { CATEGORY_META, type Bucket } from "@/lib/types";
 import { Field, NumberInput, Button, Badge } from "@/components/ui";
+import { Icon } from "@/components/Icon";
 import { clampPct } from "@/lib/format";
 
 export function Inspector({
@@ -21,7 +22,7 @@ export function Inspector({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div className="text-sm font-bold text-slate-700">인스펙터 · {bucket.name}</div>
+        <div className="text-sm font-bold text-ink-700">인스펙터 · {bucket.name}</div>
         <Badge
           tone={bucket.category === "invest" ? "amber" : bucket.category === "save" ? "emerald" : "sky"}
         >
@@ -71,8 +72,10 @@ export function Inspector({
       )}
 
       {isInvest && (
-        <label className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-sm">
-          <span className="text-slate-600">🔒 인출 제한 (연금·IRP)</span>
+        <label className="flex items-center justify-between rounded-xl border border-ink-200 px-3 py-2 text-sm">
+          <span className="flex items-center gap-1.5 text-ink-600">
+            <Icon name="lock" size={15} /> 인출 제한 (연금·IRP)
+          </span>
           <input
             type="checkbox"
             checked={bucket.isLocked}
@@ -97,8 +100,8 @@ export function Inspector({
       )}
 
       {bucket.linkedTool && (
-        <div className="flex items-center justify-between text-xs text-slate-400">
-          <span>🔗 연결 도구</span>
+        <div className="flex items-center justify-between text-xs text-ink-400">
+          <span>연결 도구</span>
           <span>{bucket.linkedTool}</span>
         </div>
       )}

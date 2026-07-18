@@ -8,6 +8,7 @@ import { presetByKey, bucketFromPreset } from "@/lib/catalog";
 import { CATEGORY_META, type Bucket } from "@/lib/types";
 import { formatKRW, clampPct } from "@/lib/format";
 import { Card, Button, Badge, EmptyState, TextInput, AssumptionNote, StatCard } from "@/components/ui";
+import { Icon } from "@/components/Icon";
 import { AssetChart } from "@/components/AssetChart";
 import { Palette } from "./Palette";
 import { Inspector } from "./Inspector";
@@ -90,10 +91,11 @@ export function EngineBuilder() {
     <div className="space-y-5">
       {/* 상단바 */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-sm text-slate-600">
+        <div className="flex items-center gap-2 text-sm text-ink-600">
           {vision && (
-            <span className="font-semibold">
-              🎯 목표 {formatKRW(vision.goalNetworth)} · {vision.targetYears}년 뒤
+            <span className="flex items-center gap-1.5 font-semibold">
+              <Icon name="target" size={16} className="text-brand-600" />
+              목표 {formatKRW(vision.goalNetworth)} · {vision.targetYears}년 뒤
             </span>
           )}
         </div>
@@ -120,12 +122,12 @@ export function EngineBuilder() {
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
             className={`min-h-[120px] rounded-2xl border-2 border-dashed p-2 transition-colors ${
-              dragOver ? "border-brand-400 bg-brand-50" : "border-slate-200"
+              dragOver ? "border-brand-400 bg-brand-50" : "border-ink-200"
             }`}
           >
             {buckets.length === 0 ? (
               <EmptyState
-                emoji="🧩"
+                icon="layers"
                 title="여기에 버킷을 끌어다 놓으세요"
                 desc="소득에서 시작해, 팔레트의 버킷을 조립해 내 엔진을 만드세요."
                 action={
@@ -145,15 +147,15 @@ export function EngineBuilder() {
                       onClick={() => setSelectedId(b.id)}
                       className={`flex w-full items-center gap-3 rounded-xl border border-l-4 bg-white px-3 py-2 text-left transition-colors ${
                         CAT_ACCENT[b.category]
-                      } ${selectedId === b.id ? "ring-2 ring-brand-300" : "hover:bg-slate-50"}`}
+                      } ${selectedId === b.id ? "ring-2 ring-brand-300" : "hover:bg-ink-50"}`}
                     >
                       <div className="flex-1">
-                        <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+                        <div className="flex items-center gap-1.5 text-sm font-semibold text-ink-700">
                           {b.name}
-                          {b.isLocked && <span title="인출 제한">🔒</span>}
+                          {b.isLocked && <Icon name="lock" size={13} className="text-locked" />}
                           <Badge tone="slate">{CATEGORY_META[b.category].label}</Badge>
                         </div>
-                        <div className="text-[11px] text-slate-400">
+                        <div className="text-[11px] text-ink-400">
                           {b.category !== "spend"
                             ? `연 ${b.expectedAnnualReturnPct}% (가정)`
                             : "소비 (out)"}
@@ -175,7 +177,7 @@ export function EngineBuilder() {
                           className="w-full"
                         />
                       </div>
-                      <div className="w-10 text-right text-sm font-bold text-slate-700">
+                      <div className="w-10 text-right text-sm font-bold text-ink-700">
                         {b.ratioPct}%
                       </div>
                     </button>
@@ -183,7 +185,7 @@ export function EngineBuilder() {
               </div>
             )}
           </div>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-ink-400">
             ＊ 노드를 클릭하면 오른쪽 인스펙터에서 비율·수익률·lock을 편집합니다. 수치는 예시·가정.
           </p>
         </div>
@@ -201,7 +203,7 @@ export function EngineBuilder() {
               onDuplicate={() => duplicate(selected)}
             />
           ) : (
-            <div className="py-8 text-center text-sm text-slate-400">
+            <div className="py-8 text-center text-sm text-ink-400">
               버킷을 선택하면
               <br />
               여기서 편집합니다.
@@ -222,7 +224,10 @@ export function EngineBuilder() {
       {/* 결과 패널 */}
       <Card>
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-sm font-bold text-slate-700">📈 복리 시뮬 결과</div>
+          <div className="flex items-center gap-1.5 text-sm font-bold text-ink-700">
+            <Icon name="trending-up" size={16} className="text-brand-600" />
+            복리 시뮬 결과
+          </div>
           {compareId && (
             <Badge tone="slate">
               점선 = {scenarios.find((s) => s.id === compareId)?.name} 비교
@@ -231,9 +236,12 @@ export function EngineBuilder() {
         </div>
 
         {nudge && (
-          <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
-            💡 현재 속도로는 목표 시점({targetYears}년) 내 도달이 어려워 보여요. 저축·수익률을 높이거나
-            목표 시점을 늘려보는 건 어떨까요? (목표는 그대로 둬도 괜찮아요)
+          <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+            <Icon name="info" size={16} className="mt-0.5 shrink-0" />
+            <span>
+              현재 속도로는 목표 시점({targetYears}년) 내 도달이 어려워 보여요. 저축·수익률을 높이거나
+              목표 시점을 늘려보는 건 어떨까요? (목표는 그대로 둬도 괜찮아요)
+            </span>
           </div>
         )}
 
@@ -273,9 +281,9 @@ export function EngineBuilder() {
         </div>
 
         {/* 시나리오 */}
-        <div className="mt-4 border-t border-slate-100 pt-4">
+        <div className="mt-4 border-t border-ink-100 pt-4">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-slate-600">시나리오</span>
+            <span className="text-sm font-semibold text-ink-600">시나리오</span>
             <div className="w-40">
               <TextInput value={scenarioName} onChange={setScenarioName} placeholder="이름 (예: 공격형)" />
             </div>
@@ -289,7 +297,7 @@ export function EngineBuilder() {
             >
               현재 배분 저장
             </Button>
-            <span className="text-xs text-slate-400">
+            <span className="text-xs text-ink-400">
               {scenarios.length}/{MAX_SCENARIOS_LIMIT}
             </span>
           </div>
@@ -298,20 +306,24 @@ export function EngineBuilder() {
               {scenarios.map((sc) => (
                 <div
                   key={sc.id}
-                  className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs"
+                  className="flex items-center gap-1 rounded-full border border-ink-200 bg-ink-50 px-2 py-1 text-xs"
                 >
-                  <span className="font-medium text-slate-600">{sc.name}</span>
+                  <span className="font-medium text-ink-600">{sc.name}</span>
                   <button className="text-brand-600" onClick={() => loadScenario(sc.id)}>
                     불러오기
                   </button>
                   <button
-                    className={compareId === sc.id ? "text-slate-800 font-bold" : "text-slate-400"}
+                    className={compareId === sc.id ? "text-ink-800 font-bold" : "text-ink-400"}
                     onClick={() => setCompareId(compareId === sc.id ? null : sc.id)}
                   >
                     비교
                   </button>
-                  <button className="text-red-400" onClick={() => deleteScenario(sc.id)}>
-                    ✕
+                  <button
+                    className="text-red-400"
+                    onClick={() => deleteScenario(sc.id)}
+                    aria-label="시나리오 삭제"
+                  >
+                    <Icon name="x" size={13} />
                   </button>
                 </div>
               ))}

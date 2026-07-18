@@ -202,8 +202,8 @@ export function AssetChart({
       </svg>
 
       {hp && !compact && (
-        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-slate-600">
-          <span className="font-semibold text-slate-800">{hp.year}년 뒤</span>
+        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-ink-600">
+          <span className="font-semibold text-ink-800">{hp.year}년 뒤</span>
           <span>순자산 <b>{formatKRW(hp.totalNetWorth)}</b></span>
           <span>유동 {formatKRW(hp.liquidAssets)}</span>
           {hp.lockedAssets > 0 && <span>잠김 {formatKRW(hp.lockedAssets)}</span>}

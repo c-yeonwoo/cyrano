@@ -2,6 +2,7 @@
 
 import type { Bucket } from "@/lib/types";
 import { formatKRW } from "@/lib/format";
+import { Icon } from "@/components/Icon";
 
 /**
  * 엔진 흐름 스키매틱 (플로우 12번 요약):
@@ -22,9 +23,10 @@ export function EngineFlow({
   const spend = sumBy("spend");
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-      <div className="mb-3 text-center text-xs font-semibold text-brand-600">
-        ↺ 실현 자본소득(배당·임대·이자)은 다시 수입으로 재유입됩니다 (하이브리드 복리)
+    <div className="rounded-2xl border border-ink-200 bg-ink-50/60 p-4">
+      <div className="mb-3 flex items-center justify-center gap-1.5 text-center text-xs font-semibold text-brand-600">
+        <Icon name="loop" size={14} />
+        실현 자본소득(배당·임대·이자)은 다시 수입으로 재유입됩니다 (하이브리드 복리)
       </div>
       <div className="flex items-stretch gap-2 text-center text-xs">
         <FlowNode title="멀티 수입" sub={`월 ${formatKRW(monthlyIncome)}`} tone="pink" />
@@ -44,7 +46,11 @@ export function EngineFlow({
 }
 
 function Arrow() {
-  return <div className="flex items-center text-slate-300">→</div>;
+  return (
+    <div className="flex items-center text-ink-300">
+      <Icon name="chevron-right" size={16} />
+    </div>
+  );
 }
 
 const TONES: Record<string, string> = {

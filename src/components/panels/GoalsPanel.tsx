@@ -4,10 +4,10 @@ import { useProfile } from "@/lib/store/useProfile";
 import { DEFAULT_VISION } from "@/lib/store/defaults";
 import { SCENE_META, type Scene, type SceneType, type Vision } from "@/lib/types";
 import { formatKRW } from "@/lib/format";
-import { Card, Field, NumberInput, TextInput, SectionTitle, AssumptionNote, Badge } from "@/components/ui";
+import { Card, Field, NumberInput, SectionTitle, AssumptionNote } from "@/components/ui";
+import { Icon, type IconName } from "@/components/Icon";
 
 const SCENE_ORDER: SceneType[] = ["place", "day", "work", "people"];
-const EMOJI_CHOICES = ["🏡", "🌴", "✈️", "📚", "🎨", "🚗", "🐶", "☕", "💪", "🌊"];
 
 export function GoalsPanel() {
   const stored = useProfile((s) => s.profile.vision);
@@ -29,12 +29,12 @@ export function GoalsPanel() {
     <div className="grid gap-6 lg:grid-cols-2">
       {/* 비전보드 */}
       <div className="space-y-5">
-        <Card className="border-amber-200 bg-amber-50/50">
-          <SectionTitle desc="＂70살의 내가 지금으로 돌아왔다면…＂">
-            ① 왜 경제적 자유를 원하나요?
+        <Card className="border-invest-100 bg-invest-50/60">
+          <SectionTitle n={1} desc="＂70살의 내가 지금으로 돌아왔다면…＂">
+            왜 경제적 자유를 원하나요?
           </SectionTitle>
           <textarea
-            className="h-24 w-full resize-none rounded-xl border border-amber-200 bg-white px-3 py-2 text-sm outline-none focus:border-amber-400"
+            className="h-24 w-full resize-none rounded-xl border border-invest-100 bg-white px-3 py-2 text-sm outline-none focus:border-invest-500"
             placeholder="동기를 한 문장~짧은 글로 적어보세요."
             value={v.why}
             onChange={(e) => patch({ why: e.target.value })}
@@ -42,8 +42,8 @@ export function GoalsPanel() {
         </Card>
 
         <div>
-          <SectionTitle desc="각 장면을 이모지·텍스트로. (AI 장면 생성은 fast-follow)">
-            ② 미래의 내 삶 장면
+          <SectionTitle n={2} desc="각 장면을 짧은 글로 그려보세요. (AI 장면 이미지는 준비 중)">
+            미래의 내 삶 장면
           </SectionTitle>
           <div className="grid grid-cols-2 gap-3">
             {SCENE_ORDER.map((type) => {
@@ -51,30 +51,24 @@ export function GoalsPanel() {
               const meta = SCENE_META[type];
               return (
                 <Card key={type} className="space-y-2">
-                  <div className="flex items-center gap-1.5 text-sm font-bold text-slate-700">
-                    <span className="text-lg">{sc.emoji ?? meta.emoji}</span>
+                  <div className="flex items-center gap-2 text-sm font-bold text-ink-700">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+                      <Icon name={meta.icon as IconName} size={16} />
+                    </span>
                     {meta.label}
                   </div>
                   <textarea
-                    className="h-16 w-full resize-none rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-xs outline-none focus:border-brand-400"
+                    className="h-16 w-full resize-none rounded-lg border border-ink-200 bg-ink-50 px-2 py-1.5 text-xs outline-none focus:border-brand-400"
                     placeholder={meta.placeholder}
                     value={sc.text}
                     onChange={(e) => setScene(type, { text: e.target.value })}
                   />
-                  <div className="flex flex-wrap gap-1">
-                    {EMOJI_CHOICES.slice(0, 6).map((emo) => (
-                      <button
-                        key={emo}
-                        onClick={() => setScene(type, { emoji: emo })}
-                        className={`rounded-md px-1 text-base ${sc.emoji === emo ? "bg-brand-100" : "hover:bg-slate-100"}`}
-                      >
-                        {emo}
-                      </button>
-                    ))}
-                    <span className="ml-auto self-center">
-                      <Badge tone="slate">✨ AI 생성 (곧)</Badge>
-                    </span>
-                  </div>
+                  <button
+                    disabled
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-ink-200 py-1.5 text-[11px] text-ink-400"
+                  >
+                    <Icon name="image" size={13} /> AI 장면 이미지 (곧)
+                  </button>
                 </Card>
               );
             })}
@@ -85,16 +79,14 @@ export function GoalsPanel() {
       {/* 목표 수치 */}
       <div className="space-y-5">
         <Card>
-          <SectionTitle desc="목표는 '타겟 라인' — 엔진 계산에는 영향을 주지 않아요.">
-            ③ 목표 수치
+          <SectionTitle n={3} desc="목표는 '타겟 라인' — 엔진 계산에는 영향을 주지 않아요.">
+            목표 수치
           </SectionTitle>
           <div className="space-y-4">
             <Field label="목표 순자산">
               <NumberInput value={v.goalNetworth} onChange={(n) => patch({ goalNetworth: n })} suffix="만원" />
             </Field>
-            <div className="text-right text-xs text-slate-400 -mt-2">
-              = {formatKRW(v.goalNetworth)}
-            </div>
+            <div className="-mt-2 text-right text-xs text-ink-400">= {formatKRW(v.goalNetworth)}</div>
             <Field label="목표 passive income (월)" hint="배당·임대 등 실현 자본소득">
               <NumberInput value={v.goalPassiveIncome} onChange={(n) => patch({ goalPassiveIncome: n })} suffix="만원" />
             </Field>
@@ -109,10 +101,11 @@ export function GoalsPanel() {
           </div>
 
           <div className="mt-4 rounded-xl border border-brand-200 bg-brand-50 p-3">
-            <div className="text-sm font-bold text-brand-700">🧮 월 생활비로 역산 (선택)</div>
+            <div className="flex items-center gap-1.5 text-sm font-bold text-brand-700">
+              <Icon name="calculator" size={15} /> 월 생활비로 역산 (선택)
+            </div>
             <p className="mt-1 text-sm text-brand-600">
-              월 {formatKRW(v.goalPassiveIncome)} × 12 ÷ 4% ≈ 약{" "}
-              <b>{formatKRW(reverseTarget)}</b> 필요
+              월 {formatKRW(v.goalPassiveIncome)} × 12 ÷ 4% ≈ 약 <b>{formatKRW(reverseTarget)}</b> 필요
             </p>
             <button
               onClick={() => patch({ goalNetworth: Math.round(reverseTarget) })}

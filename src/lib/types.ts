@@ -29,11 +29,14 @@ export interface IncomeSource {
 /** A. 비전보드 장면 카드 */
 export type SceneType = "place" | "day" | "work" | "people";
 
-export const SCENE_META: Record<SceneType, { label: string; emoji: string; placeholder: string }> = {
-  place: { label: "사는 곳", emoji: "🏠", placeholder: "어디서, 어떤 집에 살고 있나요?" },
-  day: { label: "하루 일과", emoji: "☀️", placeholder: "아침에 일어나면 무엇을 하나요?" },
-  work: { label: "하는 일", emoji: "💼", placeholder: "좋아서 하는 일은 무엇인가요?" },
-  people: { label: "함께하는 사람", emoji: "👥", placeholder: "누구와 함께 있나요?" },
+export const SCENE_META: Record<
+  SceneType,
+  { label: string; icon: string; placeholder: string }
+> = {
+  place: { label: "사는 곳", icon: "home", placeholder: "어디서, 어떤 집에 살고 있나요?" },
+  day: { label: "하루 일과", icon: "sun", placeholder: "아침에 일어나면 무엇을 하나요?" },
+  work: { label: "하는 일", icon: "briefcase", placeholder: "좋아서 하는 일은 무엇인가요?" },
+  people: { label: "함께하는 사람", icon: "users", placeholder: "누구와 함께 있나요?" },
 };
 
 export interface Scene {

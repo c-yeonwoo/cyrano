@@ -18,6 +18,7 @@ import {
   SectionTitle,
   AssumptionNote,
 } from "@/components/ui";
+import { Icon } from "@/components/Icon";
 
 const INCOME_ORDER: IncomeSourceType[] = ["labor", "capital", "platform", "freelance"];
 
@@ -45,8 +46,8 @@ export function DiagnosisPanel({ showResult = true }: { showResult?: boolean }) 
       {/* ── 입력 ── */}
       <div className="space-y-5">
         <Card>
-          <SectionTitle desc="최소만 입력해도 됩니다. 대략값·스킵 허용.">
-            ① 현재 자산 / 부채
+          <SectionTitle n={1} desc="최소만 입력해도 됩니다. 대략값·스킵 허용.">
+            현재 자산 / 부채
           </SectionTitle>
           <div className="grid grid-cols-2 gap-3">
             <Field label="현금·예적금">
@@ -66,10 +67,12 @@ export function DiagnosisPanel({ showResult = true }: { showResult?: boolean }) 
 
         <Card>
           <div className="mb-3 flex items-center justify-between">
-            <SectionTitle desc="소스별 월 소득. 엔진(C)과 같은 데이터입니다.">
-              ② 월 소득 (소스별)
+            <SectionTitle n={2} desc="소스별 월 소득. 엔진(C)과 같은 데이터입니다.">
+              월 소득 (소스별)
             </SectionTitle>
-            <Badge tone="brand">🔗 엔진과 공유</Badge>
+            <Badge tone="brand">
+              <Icon name="loop" size={12} /> 엔진과 공유
+            </Badge>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {INCOME_ORDER.map((type) => (
@@ -89,7 +92,7 @@ export function DiagnosisPanel({ showResult = true }: { showResult?: boolean }) 
         </Card>
 
         <Card>
-          <SectionTitle>③ 지출 · 비상금</SectionTitle>
+          <SectionTitle n={3}>지출 · 비상금</SectionTitle>
           <div className="grid grid-cols-2 gap-3">
             <Field label="월 지출 (대략)">
               <NumberInput value={s.monthlySpending} onChange={(v) => patch({ monthlySpending: v })} suffix="만원" />
@@ -117,8 +120,8 @@ export function DiagnosisPanel({ showResult = true }: { showResult?: boolean }) 
                 <div className="mt-1 text-sm font-medium text-brand-600">
                   {STAGE_NAMES[result.stage]}
                 </div>
-                <div className="mt-1 text-xs text-slate-400">
-                  ＊1~2단계는 정상 출발점 👍
+                <div className="mt-1 text-xs text-ink-400">
+                  1~2단계는 누구나 거치는 정상 출발점이에요.
                 </div>
               </div>
               <StageDots stage={result.stage} />
@@ -146,14 +149,14 @@ export function DiagnosisPanel({ showResult = true }: { showResult?: boolean }) 
           {vision && vision.goalNetworth > 0 && (
             <Card>
               <div className="flex items-center justify-between text-sm">
-                <span className="text-slate-500">
+                <span className="text-ink-500">
                   목표 대비 (목표 {formatKRW(vision.goalNetworth)})
                 </span>
-                <span className="font-semibold text-slate-700">
+                <span className="font-semibold text-ink-700">
                   달성률 {formatPct((m.netWorth / vision.goalNetworth) * 100, 1)}
                 </span>
               </div>
-              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+              <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-ink-200">
                 <div
                   className="h-full rounded-full bg-brand-600"
                   style={{
@@ -161,7 +164,7 @@ export function DiagnosisPanel({ showResult = true }: { showResult?: boolean }) 
                   }}
                 />
               </div>
-              <p className="mt-2 text-xs text-slate-400">
+              <p className="mt-2 text-xs text-ink-400">
                 ＊정밀 ETA·달성률은 엔진(C)에서 계산됩니다.
               </p>
             </Card>

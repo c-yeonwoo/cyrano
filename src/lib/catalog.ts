@@ -1,4 +1,5 @@
 import type { Bucket, BucketCategory } from "./types";
+import type { IconName } from "@/components/Icon";
 
 /**
  * 팔레트 프리셋 (BucketCatalog).
@@ -9,7 +10,7 @@ export interface BucketPreset {
   key: string;
   category: BucketCategory;
   name: string;
-  emoji: string;
+  icon: IconName;
   defaultReturnPct: number;
   /** 전체 수익률 중 실현(배당·임대·이자) 몫 — upstream 재유입 */
   defaultRealizedPct: number;
@@ -25,7 +26,7 @@ export const BUCKET_PRESETS: BucketPreset[] = [
     key: "stock",
     category: "invest",
     name: "주식",
-    emoji: "📈",
+    icon: "trending-up",
     defaultReturnPct: 8,
     defaultRealizedPct: 2, // 배당
     desc: "유동적 · 장기 복리",
@@ -35,7 +36,7 @@ export const BUCKET_PRESETS: BucketPreset[] = [
     key: "realestate",
     category: "invest",
     name: "부동산",
-    emoji: "🏢",
+    icon: "building",
     defaultReturnPct: 6,
     defaultRealizedPct: 3, // 임대
     desc: "큰 단위 · 레버리지",
@@ -45,7 +46,7 @@ export const BUCKET_PRESETS: BucketPreset[] = [
     key: "pension",
     category: "invest",
     name: "연금·IRP",
-    emoji: "🔒",
+    icon: "lock",
     defaultReturnPct: 7,
     defaultRealizedPct: 0, // 계좌 내부 복리(잠김)
     isLocked: true,
@@ -57,7 +58,7 @@ export const BUCKET_PRESETS: BucketPreset[] = [
     key: "emergency",
     category: "save",
     name: "비상금 (CMA)",
-    emoji: "🛟",
+    icon: "shield",
     defaultReturnPct: 3,
     defaultRealizedPct: 0,
     desc: "유동성 안전망",
@@ -66,7 +67,7 @@ export const BUCKET_PRESETS: BucketPreset[] = [
     key: "housing",
     category: "save",
     name: "청약통장",
-    emoji: "🏠",
+    icon: "home",
     defaultReturnPct: 2,
     defaultRealizedPct: 0,
     desc: "내집마련 준비",
@@ -76,7 +77,7 @@ export const BUCKET_PRESETS: BucketPreset[] = [
     key: "fixed",
     category: "spend",
     name: "고정지출",
-    emoji: "🧾",
+    icon: "receipt",
     defaultReturnPct: 0,
     defaultRealizedPct: 0,
     desc: "월세·통신·구독 등",
@@ -85,7 +86,7 @@ export const BUCKET_PRESETS: BucketPreset[] = [
     key: "variable",
     category: "spend",
     name: "변동지출",
-    emoji: "🍽️",
+    icon: "cart",
     defaultReturnPct: 0,
     defaultRealizedPct: 0,
     desc: "식비·여가 등",

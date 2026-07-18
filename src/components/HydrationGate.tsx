@@ -8,7 +8,7 @@ export function HydrationGate({ children }: { children: ReactNode }) {
   const hydrated = useProfile((s) => s.hasHydrated);
   if (!hydrated) {
     return (
-      <div className="flex h-screen items-center justify-center text-sm text-slate-400">
+      <div className="flex h-screen items-center justify-center text-sm text-ink-400">
         불러오는 중…
       </div>
     );

@@ -8,12 +8,14 @@ import { GoalsPanel } from "@/components/panels/GoalsPanel";
 import { DiagnosisPanel } from "@/components/panels/DiagnosisPanel";
 import { EngineBuilder } from "@/components/engine/EngineBuilder";
 import { Button } from "@/components/ui";
+import { Icon, type IconName } from "@/components/Icon";
+import { Logo } from "@/components/Logo";
 import { clsx } from "@/lib/clsx";
 
-const STEPS = [
-  { key: "goals", label: "목표·비전", emoji: "🎯" },
-  { key: "diagnosis", label: "현재 진단", emoji: "📊" },
-  { key: "engine", label: "엔진 구성", emoji: "⚙️" },
+const STEPS: { key: string; label: string; icon: IconName }[] = [
+  { key: "goals", label: "목표·비전", icon: "target" },
+  { key: "diagnosis", label: "현재 진단", icon: "diagnosis" },
+  { key: "engine", label: "엔진 구성", icon: "engine" },
 ];
 
 function OnboardingInner() {
@@ -30,9 +32,12 @@ function OnboardingInner() {
     <div className="mx-auto min-h-screen max-w-6xl px-4 py-6 md:px-8">
       {/* Stepper */}
       <div className="mb-6 flex items-center justify-between">
-        <div className="text-lg font-extrabold text-brand-700">＄ 재테크 엔진</div>
-        <button onClick={finish} className="text-xs text-slate-400 hover:text-slate-600">
-          나중에 채우기 · 건너뛰기 →
+        <Logo />
+        <button
+          onClick={finish}
+          className="flex items-center gap-1 text-xs text-ink-400 hover:text-ink-600"
+        >
+          나중에 채우기 · 건너뛰기 <Icon name="arrow-right" size={13} />
         </button>
       </div>
 
@@ -47,13 +52,13 @@ function OnboardingInner() {
                   ? "bg-brand-600 text-white"
                   : i < step
                     ? "bg-brand-100 text-brand-700"
-                    : "bg-slate-100 text-slate-400",
+                    : "bg-ink-100 text-ink-400",
               )}
             >
-              <span>{s.emoji}</span>
+              <Icon name={s.icon} size={16} />
               <span className="hidden sm:inline">{s.label}</span>
             </button>
-            {i < STEPS.length - 1 && <div className="h-px flex-1 bg-slate-200" />}
+            {i < STEPS.length - 1 && <div className="h-px flex-1 bg-ink-200" />}
           </div>
         ))}
       </div>
@@ -62,7 +67,8 @@ function OnboardingInner() {
         {step === 0 && (
           <>
             <StepHeader
-              title="① 미래의 나를 그려요"
+              n={1}
+              title="미래의 나를 그려요"
               desc="왜 경제적 자유를 원하는지, 얼마를 언제까지. 목표는 언제든 수정할 수 있어요."
             />
             <GoalsPanel />
@@ -71,7 +77,8 @@ function OnboardingInner() {
         {step === 1 && (
           <>
             <StepHeader
-              title="② 지금 내 위치를 확인해요"
+              n={2}
+              title="지금 내 위치를 확인해요"
               desc="최소만 입력해도 됩니다. 이 데이터는 엔진과 그대로 공유돼요."
             />
             <DiagnosisPanel />
@@ -80,7 +87,8 @@ function OnboardingInner() {
         {step === 2 && (
           <>
             <StepHeader
-              title="③ 내 엔진을 조립해요"
+              n={3}
+              title="내 엔진을 조립해요"
               desc="팔레트에서 버킷을 끌어다 배분하면 n년 뒤 자산이 바로 보입니다."
             />
             <EngineBuilder />
@@ -89,31 +97,35 @@ function OnboardingInner() {
       </div>
 
       {/* Nav */}
-      <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-slate-200 bg-white/95 py-3 backdrop-blur">
-        <Button
-          variant="ghost"
-          onClick={() => setStep((s) => Math.max(0, s - 1))}
-          disabled={step === 0}
-        >
-          ← 이전
+      <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-ink-200 bg-white/95 py-3 backdrop-blur">
+        <Button variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>
+          이전
         </Button>
         {step < STEPS.length - 1 ? (
           <Button onClick={() => setStep((s) => s + 1)}>
-            {step === 0 ? "이 목표로 시작하기" : "이 데이터로 엔진 구성"} →
+            {step === 0 ? "이 목표로 시작하기" : "이 데이터로 엔진 구성"}
+            <Icon name="arrow-right" size={15} />
           </Button>
         ) : (
-          <Button onClick={finish}>완료 · 홈으로 →</Button>
+          <Button onClick={finish}>
+            완료 · 홈으로 <Icon name="arrow-right" size={15} />
+          </Button>
         )}
       </div>
     </div>
   );
 }
 
-function StepHeader({ title, desc }: { title: string; desc: string }) {
+function StepHeader({ n, title, desc }: { n: number; title: string; desc: string }) {
   return (
-    <div className="mb-4">
-      <h1 className="text-xl font-extrabold text-slate-800">{title}</h1>
-      <p className="text-sm text-slate-500">{desc}</p>
+    <div className="mb-4 flex items-start gap-3">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">
+        {n}
+      </span>
+      <div>
+        <h1 className="text-xl font-extrabold text-ink-800">{title}</h1>
+        <p className="text-sm text-ink-500">{desc}</p>
+      </div>
     </div>
   );
 }
