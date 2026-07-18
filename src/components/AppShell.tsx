@@ -10,9 +10,9 @@ import { AccountMenu } from "./AccountMenu";
 
 const NAV: { href: string; label: string; icon: IconName; core?: boolean; soon?: boolean }[] = [
   { href: "/home", label: "홈", icon: "home" },
-  { href: "/engine", label: "엔진", icon: "engine", core: true },
-  { href: "/diagnosis", label: "진단", icon: "diagnosis" },
   { href: "/goals", label: "목표·비전", icon: "target" },
+  { href: "/diagnosis", label: "진단", icon: "diagnosis" },
+  { href: "/engine", label: "엔진", icon: "engine", core: true },
   { href: "/tracking", label: "실천", icon: "check-circle" },
   { href: "/spending", label: "지출관리", icon: "wallet", soon: true },
 ];

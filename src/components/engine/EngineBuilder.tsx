@@ -11,23 +11,16 @@ import {
   SENSITIVITY,
   type SensitivityKey,
 } from "@/lib/engine";
-import { presetByKey, bucketFromPreset } from "@/lib/catalog";
-import { CATEGORY_META, type Bucket } from "@/lib/types";
-import { formatKRW, clampPct } from "@/lib/format";
+import type { Bucket } from "@/lib/types";
+import { formatKRW } from "@/lib/format";
 import { renderShareCard, shareOrDownload } from "@/lib/shareCard";
-import { Card, Button, Badge, EmptyState, TextInput, AssumptionNote, StatCard } from "@/components/ui";
+import { Card, Button, Badge, TextInput, AssumptionNote, StatCard } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { AssetChart } from "@/components/AssetChart";
 import { BottomSheet } from "@/components/BottomSheet";
 import { Palette } from "./Palette";
 import { Inspector } from "./Inspector";
-import { EngineFlow } from "./EngineFlow";
-
-const CAT_ACCENT: Record<string, string> = {
-  invest: "border-l-amber-400",
-  save: "border-l-emerald-400",
-  spend: "border-l-sky-400",
-};
+import { EngineCanvas } from "./EngineCanvas";
 
 export function EngineBuilder() {
   const snapshot = useProfile((s) => s.profile.snapshot) ?? DEFAULT_SNAPSHOT;
@@ -45,7 +38,6 @@ export function EngineBuilder() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [compareId, setCompareId] = useState<string | null>(null);
   const [scenarioName, setScenarioName] = useState("");
-  const [dragOver, setDragOver] = useState(false);
   const [sens, setSens] = useState<SensitivityKey>("base");
   const [sharing, setSharing] = useState(false);
 
@@ -106,14 +98,6 @@ export function EngineBuilder() {
 
   const nudge = vision ? needsRealityNudge(projection.targetReachYear, targetYears) : false;
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    const key = e.dataTransfer.getData("application/bucket-preset");
-    const preset = presetByKey(key);
-    if (preset) addBucket(bucketFromPreset(preset, buckets.length));
-  };
-
   const handleShare = async () => {
     setSharing(true);
     try {
@@ -157,87 +141,22 @@ export function EngineBuilder() {
         </Badge>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[220px_1fr_260px]">
+      <div className="grid gap-5 lg:grid-cols-[176px_minmax(0,1fr)_248px]">
         {/* 팔레트 */}
         <Card className="h-fit">
           <Palette onAdd={addBucket} nextPosition={buckets.length} />
         </Card>
 
         {/* 캔버스 */}
-        <div className="space-y-4">
-          <EngineFlow buckets={buckets} monthlyIncome={monthlyIncome} />
-
-          <div
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOver(true);
-            }}
-            onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            className={`min-h-[120px] rounded-2xl border-2 border-dashed p-2 transition-colors ${
-              dragOver ? "border-brand-400 bg-brand-50" : "border-ink-200"
-            }`}
-          >
-            {buckets.length === 0 ? (
-              <EmptyState
-                icon="layers"
-                title="여기에 버킷을 끌어다 놓으세요"
-                desc="소득에서 시작해, 팔레트의 버킷을 조립해 내 엔진을 만드세요."
-                action={
-                  <Button onClick={() => setEngine(suggestEngineFromSnapshot(snapshot))}>
-                    진단 데이터로 추천 배분 시작
-                  </Button>
-                }
-              />
-            ) : (
-              <div className="space-y-1.5">
-                {buckets
-                  .slice()
-                  .sort((a, b) => a.position - b.position)
-                  .map((b) => (
-                    <button
-                      key={b.id}
-                      onClick={() => setSelectedId(b.id)}
-                      className={`flex w-full items-center gap-3 rounded-xl border border-l-4 bg-white px-3 py-2 text-left transition-colors ${
-                        CAT_ACCENT[b.category]
-                      } ${selectedId === b.id ? "ring-2 ring-brand-300" : "hover:bg-ink-50"}`}
-                    >
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1.5 text-sm font-semibold text-ink-700">
-                          {b.name}
-                          {b.isLocked && <Icon name="lock" size={13} className="text-locked" />}
-                          <Badge tone="slate">{CATEGORY_META[b.category].label}</Badge>
-                        </div>
-                        <div className="text-[11px] text-ink-400">
-                          {b.category !== "spend"
-                            ? `연 ${b.expectedAnnualReturnPct}% (가정)`
-                            : "소비 (out)"}
-                          {b.category === "invest" && b.realizedYieldPct > 0
-                            ? ` · 실현 ${b.realizedYieldPct}%`
-                            : ""}
-                        </div>
-                      </div>
-                      <div className="w-32">
-                        <input
-                          type="range"
-                          min={0}
-                          max={100}
-                          value={b.ratioPct}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) =>
-                            updateBucket(b.id, { ratioPct: clampPct(Number(e.target.value)) })
-                          }
-                          className="w-full"
-                        />
-                      </div>
-                      <div className="w-10 text-right text-sm font-bold text-ink-700">
-                        {b.ratioPct}%
-                      </div>
-                    </button>
-                  ))}
-              </div>
-            )}
-          </div>
+        <div className="space-y-2">
+          <EngineCanvas
+            buckets={buckets}
+            monthlyIncome={monthlyIncome}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+            onAdd={addBucket}
+            onRecommend={() => setEngine(suggestEngineFromSnapshot(snapshot))}
+          />
           <p className="text-xs text-ink-400">
             ＊ 노드를 클릭하면 오른쪽 인스펙터에서 비율·수익률·lock을 편집합니다. 수치는 예시·가정.
           </p>

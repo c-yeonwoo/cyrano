@@ -51,18 +51,10 @@ export function Palette({
                   e.dataTransfer.setData("application/bucket-preset", p.key)
                 }
                 onClick={() => addPreset(p)}
-                className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm transition-colors ${CAT_CARD[cat]}`}
+                className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm font-semibold text-ink-700 transition-colors ${CAT_CARD[cat]}`}
               >
                 <Icon name={p.icon} size={18} className="shrink-0" />
-                <span className="flex-1">
-                  <span className="font-semibold text-ink-700">{p.name}</span>
-                  <span className="block text-[10px] text-ink-500">{p.desc}</span>
-                </span>
-                {p.category !== "spend" && (
-                  <span className="text-[10px] font-semibold text-ink-500">
-                    ~연 {p.defaultReturnPct}%
-                  </span>
-                )}
+                {p.name}
               </button>
             ))}
           </div>
