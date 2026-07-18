@@ -28,10 +28,10 @@ export async function renderShareCard(d: ShareCardData): Promise<Blob> {
   ctx.scale(dpr, dpr);
 
   const brand = "#17181c";
-  const gold = "#c9a24a";
+  const gold = "#d9a316";
   const ink900 = "#0f172a";
   const ink400 = "#94a3b8";
-  const goal = "#b8860b";
+  const goal = "#d9a316";
 
   // 배경
   ctx.fillStyle = "#ffffff";
@@ -100,7 +100,7 @@ export async function renderShareCard(d: ShareCardData): Promise<Blob> {
   ctx.font = "700 24px ui-sans-serif, system-ui, sans-serif";
   for (const c of chips) {
     const w = ctx.measureText(c).width + 40;
-    ctx.fillStyle = "#f2e6c2";
+    ctx.fillStyle = "#f8e7ab";
     roundRect(ctx, chipX, chipY, w, 52, 26);
     ctx.fill();
     ctx.fillStyle = "#8a6a20";

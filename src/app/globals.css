@@ -19,13 +19,13 @@
   --color-brand-800: #0e0f12;
   --color-brand-900: #070809;
 
-  /* ---- Gold accent (브랜드 강조 · 목표/돈) ---- */
-  --color-gold-50: #faf6ea;
-  --color-gold-100: #f2e6c2;
-  --color-gold-200: #e6d190;
-  --color-gold-300: #d8b95f;
-  --color-gold-400: #c9a24a;
-  --color-gold-500: #ad8531;
+  /* ---- Gold accent (브랜드 강조 · 목표/돈) — 밝고 선명하게 */
+  --color-gold-50: #fdf7e6;
+  --color-gold-100: #f8e7ab;
+  --color-gold-200: #f0d073;
+  --color-gold-300: #e6b83f;
+  --color-gold-400: #d9a316;
+  --color-gold-500: #b3860f;
   --color-gold-600: #8a6a20;
 
   /* ---- Ink (중립 · 텍스트/보더/배경) ---- */
@@ -65,7 +65,7 @@
   --color-warning: #d97706;
   --color-danger: #dc2626;
   --color-locked: #0d9488; /* 잠긴 자산(연금·IRP) — teal */
-  --color-goal: #b8860b; /* 목표선 — 골드 (골든 타깃) */
+  --color-goal: #d9a316; /* 목표선 — 골드 (골든 타깃) */
 
   /* ---- Radius ---- */
   --radius-card: 1rem; /* 16px */
