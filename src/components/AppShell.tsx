@@ -15,11 +15,10 @@ type NavItem = {
   core?: boolean;
 };
 
-/** 플랫 메뉴 — 홈 → 목표 → 진단 → 설계 → 지출 → 실천 */
+/** 플랫 메뉴 — 홈 → 목표 → 설계 → 지출 → 실천 (진단은 엔진「내 현황」으로 흡수 예정) */
 const NAV: NavItem[] = [
   { href: "/home", label: "홈", icon: "home" },
   { href: "/goals", label: "목표", icon: "target" },
-  { href: "/diagnosis", label: "진단", icon: "diagnosis" },
   { href: "/engine", label: "자산 설계", icon: "engine", core: true },
   { href: "/spending", label: "지출", icon: "wallet" },
   { href: "/tracking", label: "실천", icon: "check-circle" },

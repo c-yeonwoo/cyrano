@@ -31,9 +31,9 @@ export default function HomePage() {
           </div>
         </div>
         <EmptyState
-          icon="diagnosis"
-          title="먼저 진단으로 현재 위치를 확인해요"
-          desc="자산·소득을 입력하면 지금 단계와 다음 할 일이 보여요."
+          icon="engine"
+          title="자산 설계로 현재 위치를 잡아봐요"
+          desc="목표와 현황을 넣으면 단계와 다음 할 일이 보여요."
           action={
             <Link href="/onboarding">
               <Button>시작하기</Button>
@@ -176,8 +176,8 @@ export default function HomePage() {
             [
               { href: "/engine", label: "자산 설계", icon: "engine" },
               { href: "/spending", label: "지출", icon: "wallet" },
-              { href: "/diagnosis", label: "진단", icon: "diagnosis" },
               { href: "/goals", label: "목표", icon: "target" },
+              { href: "/tracking", label: "실천", icon: "check-circle" },
             ] as { href: string; label: string; icon: IconName }[]
           ).map((q) => (
             <Link

@@ -1,11 +1,6 @@
-import { DiagnosisPanel } from "@/components/panels/DiagnosisPanel";
-import { PageHeader } from "@/components/PageHeader";
+import { redirect } from "next/navigation";
 
+/** 진단 메뉴 제거 — 자산 설계로 안내 (내 현황 모달로 흡수 예정) */
 export default function DiagnosisPage() {
-  return (
-    <div className="space-y-10">
-      <PageHeader icon="diagnosis" title="진단" desc="아는 숫자만 넣어도 됩니다." />
-      <DiagnosisPanel />
-    </div>
-  );
+  redirect("/engine");
 }
