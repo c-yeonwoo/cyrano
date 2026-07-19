@@ -17,8 +17,11 @@
 ✅ **Quiet Ledger 브랜드** — Champagne bronze · Pretendard · 루프형 IA
 ✅ **핵심 지표 계측** — PostHog 선택 연결 · 온보딩/아하/리텐션/리드 CTA 이벤트
 ✅ **BM 확정** — 리드젠 1차 / AI 코치 프리미엄 2차 (`docs/BUSINESS_MODEL.md`) · 엔진 결과 LeadCta
+✅ **Supabase 로컬 E2E** — `npm run verify:supabase` (마이그레이션·트리거·RLS). 클라우드는 무료 슬롯 확보 후 `docs/DEPLOY.md`
+✅ **Railway 배포 준비** — Dockerfile · railway.toml · `/api/health` · standalone
+✅ **컴플라이언스 페이지** — `/legal/disclaimer|terms|privacy`
 
-**남은 v1.0 GA 항목:** Supabase 실프로젝트 E2E · Railway 배포 · 컴플라이언스 페이지 · 온보딩 순서 개선.
+**남은 v1.0 GA 항목:** 클라우드 Supabase 슬롯·Railway 실배포 클릭 · 온보딩 순서 개선 · 법무 감수.
 **아직 없음:** AI 코치(Anthropic API 키 필요) · 자동연동 · 커뮤니티.
 
 ---

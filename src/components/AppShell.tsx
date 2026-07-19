@@ -116,7 +116,20 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           ))}
         </div>
-        <div className="mt-auto border-t border-ink-100 pt-3">
+        <div className="mt-auto space-y-3 border-t border-ink-100 pt-3">
+          <div className="flex flex-wrap gap-x-2 gap-y-1 px-3 text-[10px] text-ink-400">
+            <Link href="/legal/disclaimer" className="hover:text-ink-600">
+              투자 고지
+            </Link>
+            <span aria-hidden>·</span>
+            <Link href="/legal/terms" className="hover:text-ink-600">
+              약관
+            </Link>
+            <span aria-hidden>·</span>
+            <Link href="/legal/privacy" className="hover:text-ink-600">
+              개인정보
+            </Link>
+          </div>
           <AccountMenu />
         </div>
       </aside>
