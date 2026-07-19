@@ -68,5 +68,6 @@ describe("layoutEngineGraph", () => {
     });
     const link = edges.find((e) => e.toId === "a");
     expect(edgePath(link!)).toMatch(/^M/);
+    expect(edgePath(link!, false, { x: 10, y: 20 })).toContain("Q10,20");
   });
 });

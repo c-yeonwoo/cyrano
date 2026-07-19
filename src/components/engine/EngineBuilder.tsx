@@ -80,6 +80,13 @@ export function EngineBuilder() {
     }
     setSelectedIds([id]);
   };
+  const selectNodes = (ids: string[], opts?: { additive?: boolean }) => {
+    if (opts?.additive) {
+      setSelectedIds((prev) => [...new Set([...prev, ...ids])]);
+      return;
+    }
+    setSelectedIds(ids);
+  };
   const [compareId, setCompareId] = useState<string | null>(null);
   const [scenarioName, setScenarioName] = useState("");
   const [sens, setSens] = useState<SensitivityKey>("base");
@@ -356,6 +363,19 @@ export function EngineBuilder() {
               }
               if (sourcesTouched) patchSources(nextSources);
             }}
+            onEdgeControl={(edgeId, point) => {
+              const prev = engine.edgeControls ?? {};
+              if (point == null) {
+                const { [edgeId]: _, ...rest } = prev;
+                setEngine({ ...engine, edgeControls: rest });
+                return;
+              }
+              setEngine({
+                ...engine,
+                edgeControls: { ...prev, [edgeId]: point },
+              });
+            }}
+            onSelectIds={selectNodes}
             onResetLayout={() => {
               setEngine({
                 ...engine,
@@ -364,6 +384,7 @@ export function EngineBuilder() {
                 incomeCanvasY: null,
                 poolCanvasX: null,
                 poolCanvasY: null,
+                edgeControls: {},
               });
               patchSources(
                 incomeSources.map((s) => ({ ...s, canvasX: null, canvasY: null })),

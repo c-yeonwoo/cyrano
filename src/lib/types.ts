@@ -129,6 +129,11 @@ export interface EngineConfig {
   /** 모인자산(중간 집계) 캔버스 위치 */
   poolCanvasX?: number | null;
   poolCanvasY?: number | null;
+  /**
+   * 연결선 제어점(SVG 좌표). 노드와 독립 — 선만 휘게 할 때 사용.
+   * key = edge id (`from__to`)
+   */
+  edgeControls?: Record<string, { x: number; y: number }>;
 }
 
 export interface Scenario {

@@ -19,6 +19,7 @@ import {
 } from "@/lib/engine/tree";
 import {
   anchorsFromEngine,
+  defaultEdgeControl,
   edgePath,
   layoutEngineGraph,
   type GraphNode,
@@ -109,7 +110,7 @@ function QuickAddMenu({
 
 type DragState = {
   id: string;
-  /** node = 노드 직접 / edge = 선 핸들로 양끝 노드 동시 이동 */
+  /** node = 노드 이동 / edge = 선 제어점만 (노드 고정) */
   mode: "node" | "edge";
   grabDX: number;
   grabDY: number;
@@ -118,8 +119,18 @@ type DragState = {
   originX: number;
   originY: number;
   moved: boolean;
-  /** 함께 이동할 노드 원점 (복수 선택·선 드래그) */
+  /** 복수 선택 시 함께 이동할 노드 원점 */
   group: { id: string; originX: number; originY: number }[];
+  /** edge 모드: 양끝 id (클릭 선택용) */
+  edgeEnds?: { fromId: string; toId: string };
+};
+
+type MarqueeState = {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  additive: boolean;
 };
 
 function startDrag(
@@ -166,6 +177,8 @@ export function EngineCanvas({
   onAdd,
   onRequestDelete,
   onMoveNodes,
+  onEdgeControl,
+  onSelectIds,
   onResetLayout,
   onRecommend,
   spendSuggestionPending = false,
@@ -182,6 +195,10 @@ export function EngineCanvas({
   onAdd: (b: Bucket) => void;
   onRequestDelete: (id: string) => void;
   onMoveNodes: (moves: { id: string; x: number; y: number }[]) => void;
+  /** 선 제어점 저장 (null이면 해당 선 초기화) */
+  onEdgeControl: (edgeId: string, point: { x: number; y: number } | null) => void;
+  /** 마퀴 등으로 여러 id 선택 */
+  onSelectIds: (ids: string[], opts?: { additive?: boolean }) => void;
   onResetLayout: () => void;
   onRecommend: () => void;
   /** Phase B — 지출 루트에 실측 제안 배지 */
@@ -191,10 +208,12 @@ export function EngineCanvas({
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<DragState | null>(null);
+  const marqueeRef = useRef<MarqueeState | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [animate, setAnimate] = useState(false);
   const [quickAddParent, setQuickAddParent] = useState<string | null | undefined>(undefined);
   const [drag, setDrag] = useState<DragState | null>(null);
+  const [marquee, setMarquee] = useState<MarqueeState | null>(null);
 
   const sources = useMemo(() => normalizeIncomeSources(incomeSources), [incomeSources]);
   const monthlyIncome = sumMonthlyIncome(sources);
@@ -237,6 +256,14 @@ export function EngineCanvas({
       dragRef.current = null;
       setDrag(null);
       if (!cur) return;
+      if (cur.mode === "edge") {
+        if (cur.moved) {
+          onEdgeControl(cur.id, { x: Math.round(cur.x), y: Math.round(cur.y) });
+        } else if (cur.edgeEnds) {
+          onSelect(cur.edgeEnds.fromId, { also: [cur.edgeEnds.toId] });
+        }
+        return;
+      }
       if (cur.moved) {
         const dx = cur.x - cur.originX;
         const dy = cur.y - cur.originY;
@@ -251,10 +278,6 @@ export function EngineCanvas({
             y: Math.round(g.originY + dy),
           })),
         );
-      } else if (cur.mode === "edge") {
-        const a = cur.group[0];
-        const b = cur.group[1];
-        if (a && b) onSelect(a.id, { also: [b.id] });
       } else {
         onSelect(cur.id, { toggle: e.shiftKey || e.metaKey || e.ctrlKey });
       }
@@ -266,7 +289,7 @@ export function EngineCanvas({
       window.removeEventListener("pointerup", onUp);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drag?.id]);
+  }, [drag?.id, drag?.mode]);
 
   const { nodes, edges, width, height } = useMemo(
     () =>
@@ -274,7 +297,6 @@ export function EngineCanvas({
         buckets,
         incomeSources: sources,
         anchors: anchorsFromEngine(engine),
-        // 선 드래그는 레이아웃 primary 없이 그룹 오프셋만 사용
         drag:
           drag && drag.mode === "node"
             ? { id: drag.id, x: drag.x, y: drag.y }
@@ -284,16 +306,11 @@ export function EngineCanvas({
   );
 
   const selectedId = selectedIds[0] ?? null;
-  const dragDx = drag ? drag.x - drag.originX : 0;
-  const dragDy = drag ? drag.y - drag.originY : 0;
-  /** node 모드: primary는 레이아웃 반영 → 나머지만 오프셋. edge 모드: 양끝 전부 오프셋 */
+  const dragDx = drag && drag.mode === "node" ? drag.x - drag.originX : 0;
+  const dragDy = drag && drag.mode === "node" ? drag.y - drag.originY : 0;
+  /** primary는 레이아웃 반영 → 복수 선택 나머지만 오프셋 */
   const groupOffset = (id: string) => {
-    if (!drag) return { dx: 0, dy: 0 };
-    if (drag.mode === "edge") {
-      return drag.group.some((g) => g.id === id)
-        ? { dx: dragDx, dy: dragDy }
-        : { dx: 0, dy: 0 };
-    }
+    if (!drag || drag.mode !== "node") return { dx: 0, dy: 0 };
     if (id === drag.id) return { dx: 0, dy: 0 };
     if (drag.group.some((g) => g.id === id)) return { dx: dragDx, dy: dragDy };
     return { dx: 0, dy: 0 };
@@ -313,6 +330,15 @@ export function EngineCanvas({
       x2: e.x2 + b.dx,
       y2: e.y2 + b.dy,
     };
+  };
+  const edgeControlOf = (
+    edge: { id: string; x1: number; y1: number; x2: number; y2: number },
+    reinvest: boolean,
+  ) => {
+    if (drag?.mode === "edge" && drag.id === edge.id) {
+      return { x: drag.x, y: drag.y };
+    }
+    return engine.edgeControls?.[edge.id] ?? null;
   };
   const beginNodeDrag = (
     e: React.PointerEvent,
@@ -335,32 +361,80 @@ export function EngineCanvas({
   ) => {
     e.stopPropagation();
     e.preventDefault();
-    const from = nodes.find((n) => n.id === edge.fromId);
-    const to = nodes.find((n) => n.id === edge.toId);
-    if (!from || !to) return;
-    const midX = (edge.x1 + edge.x2) / 2;
-    const midY = reinvest
-      ? Math.min(edge.y1, edge.y2) - 28
-      : (edge.y1 + edge.y2) / 2;
+    const saved = engine.edgeControls?.[edge.id];
+    const base = saved ?? defaultEdgeControl(edge, reinvest);
     const p = clientToSvg(e.clientX, e.clientY);
     const next: DragState = {
       id: edge.id,
       mode: "edge",
-      grabDX: p.x - midX,
-      grabDY: p.y - midY,
-      x: midX,
-      y: midY,
-      originX: midX,
-      originY: midY,
+      grabDX: p.x - base.x,
+      grabDY: p.y - base.y,
+      x: base.x,
+      y: base.y,
+      originX: base.x,
+      originY: base.y,
       moved: false,
-      group: [
-        { id: from.id, originX: from.x, originY: from.y },
-        { id: to.id, originX: to.x, originY: to.y },
-      ],
+      group: [],
+      edgeEnds: { fromId: edge.fromId, toId: edge.toId },
     };
     dragRef.current = next;
     setDrag(next);
   };
+
+  const beginMarquee = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const p = clientToSvg(e.clientX, e.clientY);
+    const next: MarqueeState = {
+      x0: p.x,
+      y0: p.y,
+      x1: p.x,
+      y1: p.y,
+      additive: e.shiftKey || e.metaKey || e.ctrlKey,
+    };
+    marqueeRef.current = next;
+    setMarquee(next);
+  };
+
+  useEffect(() => {
+    if (!marquee) return;
+    const onMove = (e: PointerEvent) => {
+      const cur = marqueeRef.current;
+      if (!cur) return;
+      const p = clientToSvg(e.clientX, e.clientY);
+      const next = { ...cur, x1: p.x, y1: p.y };
+      marqueeRef.current = next;
+      setMarquee(next);
+    };
+    const onUp = () => {
+      const cur = marqueeRef.current;
+      marqueeRef.current = null;
+      setMarquee(null);
+      if (!cur) return;
+      const x = Math.min(cur.x0, cur.x1);
+      const y = Math.min(cur.y0, cur.y1);
+      const w = Math.abs(cur.x1 - cur.x0);
+      const h = Math.abs(cur.y1 - cur.y0);
+      if (w < 4 && h < 4) {
+        if (!cur.additive) onSelect(null);
+        return;
+      }
+      const hit = nodes
+        .filter((n) => {
+          const p = posOf(n);
+          return p.x < x + w && p.x + n.w > x && p.y < y + h && p.y + n.h > y;
+        })
+        .map((n) => n.id);
+      onSelectIds(hit, { additive: cur.additive });
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [marquee != null]);
 
   const crumb =
     selectedId && buckets.some((b) => b.id === selectedId) ? pathToRoot(selectedId, buckets) : [];
@@ -368,7 +442,8 @@ export function EngineCanvas({
     buckets.some((b) => b.canvasX != null || b.canvasY != null) ||
     sources.some((s) => s.canvasX != null || s.canvasY != null) ||
     engine.incomeCanvasX != null ||
-    engine.poolCanvasX != null;
+    engine.poolCanvasX != null ||
+    Object.keys(engine.edgeControls ?? {}).length > 0;
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -589,11 +664,22 @@ export function EngineCanvas({
             수입 → 월수입 → 자산(복리) · 현금흐름은 점선으로 되돌아옴 · 지출은 아래
           </text>
 
-          {/* 선(시각·히트) → 노드 → 핸들 순. 노드가 끝점 클릭을 우선 받음 */}
+          <rect
+            x={0}
+            y={0}
+            width={width}
+            height={height}
+            fill="transparent"
+            onPointerDown={beginMarquee}
+          />
+
+          {/* 선(시각·히트) → 노드 → 핸들. 빈 곳은 마퀴 선택 */}
           {edges.map((raw, i) => {
             const e = shiftedEdge(raw);
             const reinvest = e.fromId === "__pool__" && e.toId === "__income__";
-            const d = edgePath(e, reinvest);
+            const ctl = edgeControlOf(e, reinvest);
+            const d = edgePath(e, reinvest, ctl);
+            const handle = ctl ?? defaultEdgeControl(e, reinvest);
             const stroke =
               e.tone === "spend"
                 ? "var(--color-spend-500)"
@@ -602,11 +688,7 @@ export function EngineCanvas({
                   : e.tone === "dashed"
                     ? "var(--color-gold-400)"
                     : "var(--color-brand-400)";
-            const midX = (e.x1 + e.x2) / 2;
-            const midY = reinvest
-              ? Math.min(e.y1, e.y2) - 28
-              : (e.y1 + e.y2) / 2;
-            const labelY = reinvest ? midY + 10 : midY;
+            const labelY = reinvest ? handle.y + 10 : handle.y;
             return (
               <g key={`edge-${e.id}`}>
                 <path
@@ -629,7 +711,7 @@ export function EngineCanvas({
                 />
                 {reinvest && (
                   <text
-                    x={midX}
+                    x={handle.x}
                     y={labelY}
                     textAnchor="middle"
                     fontSize="9"
@@ -800,39 +882,47 @@ export function EngineCanvas({
           {edges.map((raw) => {
             const e = shiftedEdge(raw);
             const reinvest = e.fromId === "__pool__" && e.toId === "__income__";
-            const midX = (e.x1 + e.x2) / 2;
-            const midY = reinvest
-              ? Math.min(e.y1, e.y2) - 28
-              : (e.y1 + e.y2) / 2;
-            const edgeActive =
-              drag?.mode === "edge" &&
-              drag.group.some((g) => g.id === e.fromId) &&
-              drag.group.some((g) => g.id === e.toId);
-            const endsSelected =
-              selectedIds.includes(e.fromId) && selectedIds.includes(e.toId);
+            const ctl = edgeControlOf(e, reinvest);
+            const handle = ctl ?? defaultEdgeControl(e, reinvest);
+            const edgeActive = drag?.mode === "edge" && drag.id === e.id;
+            const customized = Boolean(engine.edgeControls?.[e.id]);
             return (
               <circle
                 key={`handle-${e.id}`}
-                cx={midX}
-                cy={midY}
-                r={edgeActive || endsSelected ? 5.5 : 4}
+                cx={handle.x}
+                cy={handle.y}
+                r={edgeActive || customized ? 5.5 : 4}
                 fill="white"
                 stroke={
-                  edgeActive || endsSelected
+                  edgeActive || customized
                     ? "var(--color-brand-500)"
                     : "var(--color-ink-300)"
                 }
-                strokeWidth={edgeActive || endsSelected ? 2 : 1.25}
+                strokeWidth={edgeActive || customized ? 2 : 1.25}
                 className="cursor-grab"
                 onPointerDown={(ev) => beginEdgeDrag(ev, e, reinvest)}
               />
             );
           })}
+
+          {marquee && (
+            <rect
+              x={Math.min(marquee.x0, marquee.x1)}
+              y={Math.min(marquee.y0, marquee.y1)}
+              width={Math.abs(marquee.x1 - marquee.x0)}
+              height={Math.abs(marquee.y1 - marquee.y0)}
+              fill="var(--color-brand-400)"
+              opacity={0.12}
+              stroke="var(--color-brand-500)"
+              strokeWidth={1}
+              style={{ pointerEvents: "none" }}
+            />
+          )}
         </svg>
       </div>
 
       <p className="border-t border-ink-100 px-3 py-2 text-[11px] text-ink-400">
-        Shift+클릭 복수 · 선·핸들 드래그로 양끝 이동 · 복리는 자산 안 · 지출은 아래
+        빈 곳 드래그=박스 선택 · Shift+클릭 추가 · 선 핸들은 곡선만 · 자동 정렬로 선도 초기화
       </p>
 
       {quickAddParent !== undefined && (

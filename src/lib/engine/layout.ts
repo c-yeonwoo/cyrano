@@ -387,7 +387,25 @@ export function layoutEngineGraph(input: LayoutInput | Bucket[]): {
   return { nodes, edges, width, height, maxDepth, monthlyIncome };
 }
 
-export function edgePath(e: GraphEdge, reinvest = false): string {
+/** 기본 곡선 핸들 위치 (제어점 없을 때) */
+export function defaultEdgeControl(
+  e: Pick<GraphEdge, "x1" | "y1" | "x2" | "y2">,
+  reinvest = false,
+): { x: number; y: number } {
+  if (reinvest) {
+    return { x: (e.x1 + e.x2) / 2, y: Math.min(e.y1, e.y2) - 28 };
+  }
+  return { x: (e.x1 + e.x2) / 2, y: (e.y1 + e.y2) / 2 };
+}
+
+export function edgePath(
+  e: GraphEdge,
+  reinvest = false,
+  control?: { x: number; y: number } | null,
+): string {
+  if (control) {
+    return `M${e.x1},${e.y1} Q${control.x},${control.y} ${e.x2},${e.y2}`;
+  }
   if (reinvest) {
     const midY = Math.min(e.y1, e.y2) - 28;
     return `M${e.x1},${e.y1} C${e.x1},${midY} ${e.x2},${midY} ${e.x2},${e.y2}`;
