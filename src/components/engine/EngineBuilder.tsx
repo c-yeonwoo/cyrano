@@ -215,6 +215,17 @@ export function EngineBuilder() {
     return Math.max(0, y1.monthlyPassiveIncome - capitalMonthly);
   }, [projection.curve, capitalMonthly]);
   const cashflowLinked = incomeSources.some((s) => s.id === ASSET_CASHFLOW_SOURCE_ID);
+  const showIncomeSources = engine.showIncomeSources !== false;
+  const setShowIncomeSources = (show: boolean) => {
+    setEngine({ ...engine, showIncomeSources: show });
+    if (
+      !show &&
+      selectedId &&
+      incomeSources.some((s) => s.id === selectedId)
+    ) {
+      selectNode(null);
+    }
+  };
   const linkCashflowToIncome = () => {
     const amt = Math.round(cashflowMonthly);
     if (amt <= 0) return;
@@ -362,6 +373,7 @@ export function EngineBuilder() {
             spendSuggestionPending={spendSuggestionPending}
             cashflowMonthly={cashflowMonthly}
             onOpenDiagnosis={() => setDiagnosisOpen(true)}
+            onShowIncomeSourcesChange={setShowIncomeSources}
             onMoveNodes={(moves) => {
               const byId = new Map(moves.map((m) => [m.id, m]));
               let nextEngine = { ...engine };
@@ -463,7 +475,9 @@ export function EngineBuilder() {
                   }}
                   className={
                     "rounded-md px-2.5 py-1 font-semibold transition-colors " +
-                    (sens === k ? "bg-gold-400 text-brand-900" : "text-ink-500 hover:bg-ink-100")
+                    (sens === k
+                      ? "bg-sage-500 text-white"
+                      : "text-ink-500 hover:bg-ink-100")
                   }
                 >
                   {SENSITIVITY[k].label}
@@ -474,7 +488,9 @@ export function EngineBuilder() {
         </div>
 
         <p className="mb-3 text-xs text-ink-400">
-          {SENSITIVITY[sens].label} 가정 · 회색 띠는 보수~공격 범위 (예시)
+          {SENSITIVITY[sens].label} = 기대수익률{" "}
+          {SENSITIVITY[sens].deltaPp > 0 ? "+" : ""}
+          {SENSITIVITY[sens].deltaPp}%p · 띠는 보수(−3)~공격(+3) 범위
         </p>
 
         {nudge && (
@@ -612,6 +628,8 @@ export function EngineBuilder() {
             {selectedId === "__income__" ? (
               <IncomeHubInspector
                 monthlyIncome={monthlyIncome}
+                showIncomeSources={showIncomeSources}
+                onShowIncomeSourcesChange={setShowIncomeSources}
                 onAddGroup={() => {
                   const pos = childrenOf(null, buckets).length;
                   addBucket(bucketFromPreset(GROUP_PRESETS[0]!, pos, null));
@@ -686,6 +704,8 @@ export function EngineBuilder() {
         {selectedId === "__income__" && (
           <IncomeHubInspector
             monthlyIncome={monthlyIncome}
+            showIncomeSources={showIncomeSources}
+            onShowIncomeSourcesChange={setShowIncomeSources}
             onAddGroup={() => {
               const pos = childrenOf(null, buckets).length;
               addBucket(bucketFromPreset(GROUP_PRESETS[0]!, pos, null));

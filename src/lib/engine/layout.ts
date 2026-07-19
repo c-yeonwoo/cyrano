@@ -1,9 +1,5 @@
 import type { Bucket, EngineConfig, IncomeSource } from "../types";
-import {
-  ASSET_CASHFLOW_SOURCE_ID,
-  normalizeIncomeSources,
-  sumMonthlyIncome,
-} from "../income";
+import { normalizeIncomeSources, sumMonthlyIncome } from "../income";
 import { childrenOf, roots } from "./tree";
 
 export const NODE_W = 168;
@@ -69,6 +65,8 @@ export interface LayoutInput {
   anchors?: LayoutAnchors;
   /** 드래그 중인 임시 위치 */
   drag?: { id: string; x: number; y: number } | null;
+  /** false면 수입원 노드·엣지 생략 (기본 true) */
+  showIncomeSources?: boolean;
 }
 
 interface TreeSlot {
@@ -196,6 +194,7 @@ export function layoutEngineGraph(input: LayoutInput | Bucket[]): {
   const monthlyIncome = sumMonthlyIncome(sources);
   const anchors = opts.anchors ?? {};
   const drag = opts.drag;
+  const showIncomeSources = opts.showIncomeSources !== false;
 
   const allRoots = roots(buckets);
   const growRoots = allRoots.filter((b) => b.category !== "spend");
@@ -222,27 +221,29 @@ export function layoutEngineGraph(input: LayoutInput | Bucket[]): {
 
   const nodes: GraphNode[] = [];
 
-  // 수입 항목 (월수입 왼쪽)
-  const sourceAutoX = colX(-1);
-  let sourceCursor = PAD_Y + 8;
-  sources.forEach((src) => {
-    const id = src.id!;
-    const autoY = sourceCursor;
-    sourceCursor += SOURCE_H + ROW_GAP;
-    const baseX = src.canvasX ?? sourceAutoX;
-    const baseY = src.canvasY ?? autoY;
-    const { x, y } = applyDrag(id, baseX, baseY, drag);
-    nodes.push({
-      id,
-      kind: "source",
-      incomeSource: src,
-      depth: -1,
-      x,
-      y,
-      w: SOURCE_W,
-      h: SOURCE_H,
+  // 수입 항목 (월수입 왼쪽) — showIncomeSources=false면 합계만 쓰고 노드는 숨김
+  if (showIncomeSources) {
+    const sourceAutoX = colX(-1);
+    let sourceCursor = PAD_Y + 8;
+    sources.forEach((src) => {
+      const id = src.id!;
+      const autoY = sourceCursor;
+      sourceCursor += SOURCE_H + ROW_GAP;
+      const baseX = src.canvasX ?? sourceAutoX;
+      const baseY = src.canvasY ?? autoY;
+      const { x, y } = applyDrag(id, baseX, baseY, drag);
+      nodes.push({
+        id,
+        kind: "source",
+        incomeSource: src,
+        depth: -1,
+        x,
+        y,
+        w: SOURCE_W,
+        h: SOURCE_H,
+      });
     });
-  });
+  }
 
   // 월수입 허브
   const incomeAutoX = colX(0);
@@ -318,7 +319,7 @@ export function layoutEngineGraph(input: LayoutInput | Bucket[]): {
     if (n.kind === "bucket") maxDepth = Math.max(maxDepth, n.depth);
   }
 
-  // 자산 = 성장·안전 리프 합류 (복리 장소; 현금흐름만 월수입으로)
+  // 자산 = 투자·저축 리프 합류
   const feed = nodes.filter(
     (n) =>
       n.kind === "bucket" &&
@@ -363,23 +364,6 @@ export function layoutEngineGraph(input: LayoutInput | Bucket[]): {
         x2: pool.x,
         y2,
       });
-    });
-
-    // 실현 수익 재유입 — 수입원(자산 현금흐름)이 있으면 그쪽으로, 없으면 월수입으로
-    const linkedCashflow = sourceNodes.find(
-      (n) => n.id === ASSET_CASHFLOW_SOURCE_ID || n.incomeSource?.id === ASSET_CASHFLOW_SOURCE_ID,
-    );
-    const reinvestTo = linkedCashflow ?? income;
-    edges.push({
-      id: safeEdgeId(pool.id, reinvestTo.id),
-      fromId: pool.id,
-      toId: reinvestTo.id,
-      tone: "dashed",
-      ratio: 0,
-      x1: pool.x + pool.w / 2,
-      y1: pool.y,
-      x2: reinvestTo.x + reinvestTo.w / 2,
-      y2: linkedCashflow ? reinvestTo.y + reinvestTo.h / 2 : reinvestTo.y,
     });
   }
 

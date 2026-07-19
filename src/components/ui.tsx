@@ -141,14 +141,17 @@ export function TextInput({
   onChange,
   placeholder,
   className = "",
+  id,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   className?: string;
+  id?: string;
 }) {
   return (
     <input
+      id={id}
       className={clsx(
         "w-full rounded-lg border border-ink-300 bg-white px-3 py-2 text-sm text-ink-900 outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500",
         className,
@@ -165,13 +168,14 @@ export function Badge({
   tone = "brand",
 }: {
   children: ReactNode;
-  tone?: "brand" | "amber" | "emerald" | "sky" | "slate";
+  tone?: "brand" | "amber" | "emerald" | "sky" | "rose" | "slate";
 }) {
   const tones = {
     brand: "bg-brand-50 text-brand-700 border-brand-200",
     amber: "bg-amber-50 text-amber-700 border-amber-200",
     emerald: "bg-emerald-50 text-emerald-700 border-emerald-200",
     sky: "bg-sky-50 text-sky-700 border-sky-200",
+    rose: "bg-spend-50 text-spend-700 border-spend-300",
     slate: "bg-ink-100 text-ink-600 border-ink-200",
   };
   return (

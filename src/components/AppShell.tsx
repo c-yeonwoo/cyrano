@@ -135,6 +135,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <main className="min-w-0 flex-1 px-5 pb-24 pt-5 md:px-6 md:pb-10 lg:px-8 xl:px-10">
+        <div className="mb-3 flex justify-end md:hidden">
+          <div className="rounded-xl border border-ink-200 bg-white px-1">
+            <AccountMenu />
+          </div>
+        </div>
         <div className="mx-auto w-full max-w-[1680px]">{children}</div>
       </main>
 

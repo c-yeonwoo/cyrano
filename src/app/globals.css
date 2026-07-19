@@ -48,22 +48,29 @@
   --color-ink-800: #1e293b;
   --color-ink-900: #0f172a;
 
-  /* ---- 자산 카테고리 (기능색) ---- */
+  /* ---- 엔진 카테고리 (투자·저축·지출) ---- */
   --color-invest-50: #fffbeb;
   --color-invest-100: #fef3c7;
+  --color-invest-300: #fcd34d;
   --color-invest-500: #f59e0b;
   --color-invest-600: #d97706;
   --color-invest-700: #b45309;
+  --color-invest-800: #92400e;
   --color-save-50: #ecfdf5;
   --color-save-100: #d1fae5;
+  --color-save-300: #6ee7b7;
   --color-save-500: #10b981;
   --color-save-600: #059669;
   --color-save-700: #047857;
-  --color-spend-50: #f0f9ff;
-  --color-spend-100: #e0f2fe;
-  --color-spend-500: #0ea5e9;
-  --color-spend-600: #0284c7;
-  --color-spend-700: #0369a1;
+  --color-save-800: #065f46;
+  /* 지출: rose (투자 amber · 저축 emerald 과 구분) */
+  --color-spend-50: #fff1f2;
+  --color-spend-100: #ffe4e6;
+  --color-spend-300: #fda4af;
+  --color-spend-500: #e11d48;
+  --color-spend-600: #be123c;
+  --color-spend-700: #9f1239;
+  --color-spend-800: #881337;
 
   --color-success: #059669;
   --color-warning: #d97706;

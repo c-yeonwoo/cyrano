@@ -46,10 +46,14 @@ export function SyncManager() {
       try {
         const remote = await loadProfile(sb, user.id);
         if (cancelled) return;
-        if (remote) {
+        const local = useProfile.getState().profile;
+        // 신규 유저는 profiles 행만 있고 vision/snapshot이 비어 있음 → 로컬 이관
+        if (remote && profileHasData(remote)) {
           replaceProfile(remote);
-        } else if (profileHasData(useProfile.getState().profile)) {
-          await saveProfile(sb, user.id, useProfile.getState().profile);
+        } else if (profileHasData(local)) {
+          await saveProfile(sb, user.id, local);
+        } else if (remote) {
+          replaceProfile(remote);
         }
       } catch (e) {
         console.error("[sync] load failed", e);

@@ -33,10 +33,11 @@ import {
 import { Button, EmptyState, TextInput } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 
+/** 투자 amber · 저축 emerald · 지출 rose */
 const CAT_NODE: Record<string, string> = {
-  invest: "border-invest-500 bg-invest-50 text-invest-700",
-  save: "border-save-500 bg-save-50 text-save-700",
-  spend: "border-spend-500 bg-spend-50 text-spend-700",
+  invest: "border-invest-300 border-l-[3px] border-l-invest-500 bg-invest-50 text-invest-800",
+  save: "border-save-300 border-l-[3px] border-l-save-500 bg-save-50 text-save-800",
+  spend: "border-spend-300 border-l-[3px] border-l-spend-500 bg-spend-50 text-spend-800",
 };
 
 function linkWidth(ratio: number) {
@@ -138,6 +139,14 @@ type MarqueeState = {
   additive: boolean;
 };
 
+type PanDrag = {
+  startClientX: number;
+  startClientY: number;
+  originX: number;
+  originY: number;
+  moved: boolean;
+};
+
 function startDrag(
   e: React.PointerEvent,
   id: string,
@@ -187,6 +196,7 @@ export function EngineCanvas({
   onResetLayout,
   onRecommend,
   onOpenDiagnosis,
+  onShowIncomeSourcesChange,
   spendSuggestionPending = false,
   cashflowMonthly = 0,
 }: {
@@ -209,6 +219,8 @@ export function EngineCanvas({
   onRecommend: () => void;
   /** 내 현황(진단) 모달 */
   onOpenDiagnosis?: () => void;
+  /** 월수입 — 수입원 노드 표시 on/off */
+  onShowIncomeSourcesChange?: (show: boolean) => void;
   /** Phase B — 지출 루트에 실측 제안 배지 */
   spendSuggestionPending?: boolean;
   /** 자산→월수입 현금흐름 추정(만원/월) */
@@ -217,17 +229,23 @@ export function EngineCanvas({
   const svgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<DragState | null>(null);
   const marqueeRef = useRef<MarqueeState | null>(null);
+  const panDragRef = useRef<PanDrag | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [animate, setAnimate] = useState(false);
   const [quickAddParent, setQuickAddParent] = useState<string | null | undefined>(undefined);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [marquee, setMarquee] = useState<MarqueeState | null>(null);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [panning, setPanning] = useState(false);
   const [zoom, setZoom] = useState(1);
   const zoomRef = useRef(1);
   zoomRef.current = zoom;
+  const panRef = useRef(pan);
+  panRef.current = pan;
 
   const sources = useMemo(() => normalizeIncomeSources(incomeSources), [incomeSources]);
   const monthlyIncome = sumMonthlyIncome(sources);
+  const showIncomeSources = engine.showIncomeSources !== false;
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -263,12 +281,18 @@ export function EngineCanvas({
     return { x: p.x, y: p.y };
   };
 
+  /** 팬(translate)이 적용된 콘텐츠 좌표 */
+  const clientToContent = (clientX: number, clientY: number) => {
+    const p = clientToSvg(clientX, clientY);
+    return { x: p.x - panRef.current.x, y: p.y - panRef.current.y };
+  };
+
   useEffect(() => {
     if (!drag) return;
     const onMove = (e: PointerEvent) => {
       const cur = dragRef.current;
       if (!cur) return;
-      const p = clientToSvg(e.clientX, e.clientY);
+      const p = clientToContent(e.clientX, e.clientY);
       const x = p.x - cur.grabDX;
       const y = p.y - cur.grabDY;
       const moved = cur.moved || Math.hypot(x - cur.originX, y - cur.originY) > 4;
@@ -322,12 +346,13 @@ export function EngineCanvas({
         buckets,
         incomeSources: sources,
         anchors: anchorsFromEngine(engine),
+        showIncomeSources,
         drag:
           drag && drag.mode === "node"
             ? { id: drag.id, x: drag.x, y: drag.y }
             : null,
       }),
-    [buckets, sources, engine, drag],
+    [buckets, sources, engine, drag, showIncomeSources],
   );
 
   const selectedId = selectedIds[0] ?? null;
@@ -356,10 +381,7 @@ export function EngineCanvas({
       y2: e.y2 + b.dy,
     };
   };
-  const edgeControlOf = (
-    edge: { id: string; x1: number; y1: number; x2: number; y2: number },
-    reinvest: boolean,
-  ) => {
+  const edgeControlOf = (edge: { id: string }) => {
     if (drag?.mode === "edge" && drag.id === edge.id) {
       return { x: drag.x, y: drag.y };
     }
@@ -376,19 +398,18 @@ export function EngineCanvas({
       const gn = nodes.find((x) => x.id === gid);
       return { id: gid, originX: gn?.x ?? n.x, originY: gn?.y ?? n.y };
     });
-    startDrag(e, id, n, clientToSvg, dragRef, setDrag, group);
+    startDrag(e, id, n, clientToContent, dragRef, setDrag, group);
   };
 
   const beginEdgeDrag = (
     e: React.PointerEvent,
     edge: { id: string; fromId: string; toId: string; x1: number; y1: number; x2: number; y2: number },
-    reinvest: boolean,
   ) => {
     e.stopPropagation();
     e.preventDefault();
     const saved = engine.edgeControls?.[edge.id];
-    const base = saved ?? defaultEdgeControl(edge, reinvest);
-    const p = clientToSvg(e.clientX, e.clientY);
+    const base = saved ?? defaultEdgeControl(edge);
+    const p = clientToContent(e.clientX, e.clientY);
     const next: DragState = {
       id: edge.id,
       mode: "edge",
@@ -409,24 +430,71 @@ export function EngineCanvas({
   const beginMarquee = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
     e.preventDefault();
-    const p = clientToSvg(e.clientX, e.clientY);
+    const p = clientToContent(e.clientX, e.clientY);
     const next: MarqueeState = {
       x0: p.x,
       y0: p.y,
       x1: p.x,
       y1: p.y,
-      additive: e.shiftKey || e.metaKey || e.ctrlKey,
+      additive: true,
     };
     marqueeRef.current = next;
     setMarquee(next);
   };
+
+  const beginPan = (e: React.PointerEvent) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    panDragRef.current = {
+      startClientX: e.clientX,
+      startClientY: e.clientY,
+      originX: panRef.current.x,
+      originY: panRef.current.y,
+      moved: false,
+    };
+    setPanning(true);
+  };
+
+  const onBackgroundPointerDown = (e: React.PointerEvent) => {
+    if (e.shiftKey || e.metaKey || e.ctrlKey) beginMarquee(e);
+    else beginPan(e);
+  };
+
+  useEffect(() => {
+    if (!panning) return;
+    const onMove = (e: PointerEvent) => {
+      const cur = panDragRef.current;
+      const svg = svgRef.current;
+      if (!cur || !svg) return;
+      const ctm = svg.getScreenCTM();
+      const scale = ctm ? ctm.a : 1;
+      const dx = (e.clientX - cur.startClientX) / scale;
+      const dy = (e.clientY - cur.startClientY) / scale;
+      const moved = cur.moved || Math.hypot(dx, dy) > 3;
+      panDragRef.current = { ...cur, moved };
+      setPan({ x: cur.originX + dx, y: cur.originY + dy });
+    };
+    const onUp = () => {
+      const cur = panDragRef.current;
+      panDragRef.current = null;
+      setPanning(false);
+      if (cur && !cur.moved) onSelect(null);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [panning]);
 
   useEffect(() => {
     if (!marquee) return;
     const onMove = (e: PointerEvent) => {
       const cur = marqueeRef.current;
       if (!cur) return;
-      const p = clientToSvg(e.clientX, e.clientY);
+      const p = clientToContent(e.clientX, e.clientY);
       const next = { ...cur, x1: p.x, y1: p.y };
       marqueeRef.current = next;
       setMarquee(next);
@@ -441,7 +509,6 @@ export function EngineCanvas({
       const w = Math.abs(cur.x1 - cur.x0);
       const h = Math.abs(cur.y1 - cur.y0);
       if (w < 4 && h < 4) {
-        if (!cur.additive) onSelect(null);
         return;
       }
       const hit = nodes
@@ -605,25 +672,18 @@ export function EngineCanvas({
               <Icon name="x" size={compact ? 11 : 12} />
             </button>
           </div>
-          {selected && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setQuickAddParent(b.id);
-              }}
-              className="mt-1 flex w-full items-center justify-center gap-0.5 rounded-md bg-white/70 py-0.5 text-[10px] font-bold text-ink-600 hover:bg-white"
-            >
-              <Icon name="plus" size={11} /> 하위
-            </button>
-          )}
-          {!leaf && !selected && !compact && (
+          {!leaf && !compact && (
             <div className="mt-0.5 text-[9px] font-semibold opacity-50">묶음</div>
           )}
         </div>
       </foreignObject>
     );
   };
+
+  const selectedBucket =
+    selectedId && buckets.some((b) => b.id === selectedId)
+      ? buckets.find((b) => b.id === selectedId)!
+      : null;
 
   return (
     <div
@@ -663,6 +723,37 @@ export function EngineCanvas({
             </button>
           </span>
         ))}
+        {selectedBucket && (
+          <button
+            type="button"
+            onClick={() => setQuickAddParent(selectedBucket.id)}
+            className="ml-1 flex items-center gap-0.5 rounded-md border border-ink-200 bg-white px-1.5 py-0.5 font-semibold text-ink-600 hover:bg-ink-50"
+          >
+            <Icon name="plus" size={12} /> 하위 추가
+          </button>
+        )}
+        {selectedId === "__income__" && (
+          <>
+            {onShowIncomeSourcesChange && (
+              <label className="ml-1 flex cursor-pointer items-center gap-1 rounded-md border border-ink-200 bg-white px-1.5 py-0.5 font-semibold text-ink-600 hover:bg-ink-50">
+                <input
+                  type="checkbox"
+                  className="h-3 w-3 accent-brand-700"
+                  checked={showIncomeSources}
+                  onChange={(e) => onShowIncomeSourcesChange(e.target.checked)}
+                />
+                수입원
+              </label>
+            )}
+            <button
+              type="button"
+              onClick={() => setQuickAddParent(null)}
+              className="ml-1 flex items-center gap-0.5 rounded-md border border-brand-200 bg-brand-50 px-1.5 py-0.5 font-semibold text-brand-700 hover:bg-brand-100"
+            >
+              <Icon name="plus" size={12} /> 묶음 추가
+            </button>
+          </>
+        )}
         <div className="ml-auto flex items-center gap-2">
           {hasCustomLayout && (
             <button
@@ -678,9 +769,10 @@ export function EngineCanvas({
             onClick={() => {
               zoomRef.current = 1;
               setZoom(1);
+              setPan({ x: 0, y: 0 });
             }}
             className="tnum rounded-md px-1.5 py-0.5 font-semibold text-ink-500 hover:bg-ink-100 hover:text-ink-700"
-            title="줌 초기화"
+            title="줌·위치 초기화"
           >
             {Math.round(zoom * 100)}%
           </button>
@@ -688,11 +780,11 @@ export function EngineCanvas({
         </div>
       </div>
 
-      <div className="overflow-auto p-2">
+      <div className={`overflow-auto p-2 ${panning ? "cursor-grabbing" : ""}`}>
         <svg
           ref={svgRef}
           viewBox={`0 0 ${width} ${height}`}
-          className="touch-none"
+          className={`touch-none ${panning ? "cursor-grabbing" : "cursor-grab"}`}
           style={{
             width: Math.max(780, width) * zoom,
             height: Math.min(560, Math.max(380, height * 0.52)) * zoom,
@@ -700,44 +792,29 @@ export function EngineCanvas({
           }}
           preserveAspectRatio="xMidYMid meet"
         >
-          <text
-            x={width / 2}
-            y={16}
-            textAnchor="middle"
-            fontSize="10"
-            fontWeight="600"
-            fill="var(--color-ink-400)"
-          >
-            수입 → 월수입 → 투자·저축 → 자산 · 지출은 아래
-          </text>
-
+          {/* 배경: 드래그=팬 · Shift/⌘=박스 선택 */}
           <rect
             x={0}
             y={0}
             width={width}
             height={height}
             fill="transparent"
-            onPointerDown={beginMarquee}
+            onPointerDown={onBackgroundPointerDown}
           />
 
-          {/* 선(시각·히트) → 노드 → 핸들. 빈 곳은 마퀴 선택 */}
+          <g transform={`translate(${pan.x}, ${pan.y})`}>
+          {/* 선(시각·히트) → 노드 → 핸들 */}
           {edges.map((raw, i) => {
             const e = shiftedEdge(raw);
-            const reinvest =
-              e.fromId === "__pool__" &&
-              (e.toId === "__income__" || e.toId === ASSET_CASHFLOW_SOURCE_ID);
-            const ctl = edgeControlOf(e, reinvest);
-            const d = edgePath(e, reinvest, ctl);
-            const handle = ctl ?? defaultEdgeControl(e, reinvest);
+            const ctl = edgeControlOf(e);
+            const d = edgePath(e, false, ctl);
+            const handle = ctl ?? defaultEdgeControl(e);
             const stroke =
               e.tone === "spend"
                 ? "var(--color-spend-500)"
                 : e.tone === "income"
-                  ? "var(--color-brand-400)"
-                  : e.tone === "dashed"
-                    ? "var(--color-gold-400)"
-                    : "var(--color-brand-400)";
-            const labelY = reinvest ? handle.y + 10 : handle.y;
+                  ? "var(--color-brand-500)"
+                  : "var(--color-brand-400)";
             return (
               <g key={`edge-${e.id}`}>
                 <path
@@ -745,8 +822,7 @@ export function EngineCanvas({
                   d={d}
                   fill="none"
                   stroke={stroke}
-                  strokeWidth={e.tone === "dashed" ? 1.6 : linkWidth(e.ratio)}
-                  strokeDasharray={e.tone === "dashed" ? "5 5" : undefined}
+                  strokeWidth={linkWidth(e.ratio)}
                   opacity={0.9}
                   style={{ pointerEvents: "none" }}
                 />
@@ -756,33 +832,18 @@ export function EngineCanvas({
                   stroke="transparent"
                   strokeWidth={16}
                   className="cursor-grab"
-                  onPointerDown={(ev) => beginEdgeDrag(ev, e, reinvest)}
+                  onPointerDown={(ev) => beginEdgeDrag(ev, e)}
                 />
-                {reinvest && (
-                  <text
-                    x={handle.x}
-                    y={labelY}
-                    textAnchor="middle"
-                    fontSize="9"
-                    fontWeight="600"
-                    fill="var(--color-gold-500)"
-                    style={{ pointerEvents: "none" }}
-                  >
-                    {cashflowMonthly > 0
-                      ? `현금흐름 월 ${Math.round(cashflowMonthly)}만`
-                      : "현금흐름"}
-                  </text>
-                )}
-                {animate && e.tone !== "dashed" && !drag && (
+                {animate && !drag && (
                   <>
                     <path
                       d={d}
                       fill="none"
                       stroke={
                         e.tone === "spend"
-                          ? "var(--color-spend-600)"
+                          ? "var(--color-spend-500)"
                           : e.tone === "income"
-                            ? "var(--color-gold-400)"
+                            ? "var(--color-gold-500)"
                             : "var(--color-brand-500)"
                       }
                       strokeWidth="1.5"
@@ -797,9 +858,7 @@ export function EngineCanvas({
                       fill={
                         e.tone === "spend"
                           ? "var(--color-spend-500)"
-                          : e.tone === "income"
-                            ? "var(--color-gold-400)"
-                            : "var(--color-gold-400)"
+                          : "var(--color-gold-500)"
                       }
                       style={{ pointerEvents: "none" }}
                     >
@@ -812,17 +871,6 @@ export function EngineCanvas({
                       </animateMotion>
                     </circle>
                   </>
-                )}
-                {animate && reinvest && !drag && cashflowMonthly > 0 && (
-                  <circle
-                    r="2.5"
-                    fill="var(--color-gold-400)"
-                    style={{ pointerEvents: "none" }}
-                  >
-                    <animateMotion dur="3.2s" repeatCount="indefinite">
-                      <mpath href={`#${e.id}`} />
-                    </animateMotion>
-                  </circle>
                 )}
               </g>
             );
@@ -881,26 +929,14 @@ export function EngineCanvas({
                     role="button"
                     tabIndex={0}
                     onPointerDown={(e) => beginNodeDrag(e, "__income__", n)}
-                    className={`flex h-full w-full cursor-grab select-none flex-col justify-center rounded-xl border border-brand-200 bg-brand-50 px-2 text-center ${
-                      selected ? "ring-2 ring-brand-500" : "hover:shadow-sm"
+                    className={`flex h-full w-full cursor-grab select-none flex-col justify-center rounded-xl border border-gold-300 bg-gold-50 px-2 text-center ${
+                      selected ? "ring-2 ring-gold-500" : "hover:shadow-sm"
                     } ${dragging ? "cursor-grabbing opacity-90" : ""}`}
                   >
-                    <div className="text-[11px] font-semibold text-brand-600">월수입</div>
-                    <div className="tnum mt-0.5 text-base font-extrabold text-brand-800">
+                    <div className="text-[11px] font-semibold text-gold-600">월수입</div>
+                    <div className="tnum mt-0.5 text-base font-extrabold text-gold-700">
                       {monthlyIncome}만
                     </div>
-                    {selected && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setQuickAddParent(null);
-                        }}
-                        className="mx-auto mt-1.5 flex items-center gap-0.5 rounded-md bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-brand-600 hover:bg-white"
-                      >
-                        <Icon name="plus" size={11} /> 묶음
-                      </button>
-                    )}
                   </div>
                 </foreignObject>
               );
@@ -918,13 +954,13 @@ export function EngineCanvas({
                     role="button"
                     tabIndex={0}
                     onPointerDown={(e) => beginNodeDrag(e, "__pool__", n)}
-                    className={`flex h-full w-full cursor-grab select-none flex-col items-center justify-center rounded-xl bg-brand-800 px-2 text-center text-white ${
-                      selected ? "ring-2 ring-gold-400" : ""
+                    className={`flex h-full w-full cursor-grab select-none flex-col items-center justify-center rounded-xl border border-sage-500/35 bg-sage-50 px-2 text-center ${
+                      selected ? "ring-2 ring-sage-500" : "hover:shadow-sm"
                     } ${dragging ? "cursor-grabbing opacity-90" : ""}`}
                   >
-                    <div className="text-sm font-bold">자산</div>
+                    <div className="text-sm font-bold text-sage-700">자산</div>
                     {cashflowMonthly > 0 ? (
-                      <div className="tnum mt-1 text-[11px] font-semibold text-gold-300">
+                      <div className="tnum mt-1 text-[11px] font-semibold text-sage-600">
                         흐름 월 {Math.round(cashflowMonthly)}만
                       </div>
                     ) : null}
@@ -938,11 +974,8 @@ export function EngineCanvas({
 
           {edges.map((raw) => {
             const e = shiftedEdge(raw);
-            const reinvest =
-              e.fromId === "__pool__" &&
-              (e.toId === "__income__" || e.toId === ASSET_CASHFLOW_SOURCE_ID);
-            const ctl = edgeControlOf(e, reinvest);
-            const handle = ctl ?? defaultEdgeControl(e, reinvest);
+            const ctl = edgeControlOf(e);
+            const handle = ctl ?? defaultEdgeControl(e);
             const edgeActive = drag?.mode === "edge" && drag.id === e.id;
             const customized = Boolean(engine.edgeControls?.[e.id]);
             return (
@@ -959,7 +992,7 @@ export function EngineCanvas({
                 }
                 strokeWidth={edgeActive || customized ? 2 : 1.25}
                 className="cursor-grab"
-                onPointerDown={(ev) => beginEdgeDrag(ev, e, reinvest)}
+                onPointerDown={(ev) => beginEdgeDrag(ev, e)}
               />
             );
           })}
@@ -977,11 +1010,12 @@ export function EngineCanvas({
               style={{ pointerEvents: "none" }}
             />
           )}
+          </g>
         </svg>
       </div>
 
       <p className="border-t border-ink-100 px-3 py-2 text-[11px] text-ink-400">
-        휠 줌 · 빈 곳 드래그=박스 선택 · 선 핸들=곡선 · 자산→수입원 연결 가능
+        휠 줌 · 빈 곳 드래그=전체 이동 · Shift+드래그=박스 선택 · 선 핸들=곡선
       </p>
 
       {quickAddParent !== undefined && (

@@ -46,7 +46,7 @@ export function Inspector({
       <div className="flex items-center justify-between">
         <div className="text-sm font-bold text-ink-800">{bucket.name}</div>
         <Badge
-          tone={bucket.category === "invest" ? "amber" : bucket.category === "save" ? "emerald" : "sky"}
+          tone={bucket.category === "invest" ? "amber" : bucket.category === "save" ? "emerald" : "rose"}
         >
           {meta.label}
           {!leaf ? " · 묶음" : ""}
@@ -99,25 +99,50 @@ export function Inspector({
       </div>
 
       {leaf && bucket.category !== "spend" && (
-        <Field label="기대 연 수익률">
-          <NumberInput
-            value={bucket.expectedAnnualReturnPct}
-            onChange={(n) => onChange({ expectedAnnualReturnPct: n })}
-            suffix="%"
-          />
-        </Field>
+        <div className="space-y-1">
+          <Field label="전체 수익률" hint="연 %">
+            <NumberInput
+              value={bucket.expectedAnnualReturnPct}
+              onChange={(n) => onChange({ expectedAnnualReturnPct: n })}
+              suffix="%"
+            />
+          </Field>
+          <p className="text-[11px] leading-relaxed text-ink-400">
+            {isInvest
+              ? "시세 상승+배당·이자 등 이 자산이 1년에 얼마나 불지 가정"
+              : "예금·적금 이자 등 연 수익률 가정"}
+          </p>
+        </div>
       )}
 
       {leaf && isInvest && (
-        <Field label="실현 수익률">
-          <NumberInput
-            value={bucket.realizedYieldPct}
-            onChange={(n) =>
-              onChange({ realizedYieldPct: Math.min(n, bucket.expectedAnnualReturnPct) })
-            }
-            suffix="%"
-          />
-        </Field>
+        <div className="space-y-1">
+          <Field label="현금으로 받는 비율" hint="연 % · 전체 이하">
+            <NumberInput
+              value={bucket.realizedYieldPct}
+              onChange={(n) =>
+                onChange({ realizedYieldPct: Math.min(n, bucket.expectedAnnualReturnPct) })
+              }
+              suffix="%"
+            />
+          </Field>
+          <p className="text-[11px] leading-relaxed text-ink-400">
+            배당·임대·이자처럼 현금으로 들어오는 몫. 나머지는 계좌 안 복리로 남아요
+            {bucket.expectedAnnualReturnPct > 0 && (
+              <>
+                {" "}
+                · 계좌 안 복리 약{" "}
+                <span className="tnum font-semibold text-ink-500">
+                  {Math.max(
+                    0,
+                    bucket.expectedAnnualReturnPct - bucket.realizedYieldPct,
+                  ).toFixed(1)}
+                  %
+                </span>
+              </>
+            )}
+          </p>
+        </div>
       )}
 
       {leaf && isInvest && (

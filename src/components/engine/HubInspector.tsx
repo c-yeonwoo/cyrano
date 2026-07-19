@@ -7,18 +7,39 @@ import { Icon } from "@/components/Icon";
 
 export function IncomeHubInspector({
   monthlyIncome,
+  showIncomeSources = true,
+  onShowIncomeSourcesChange,
   onAddGroup,
 }: {
   monthlyIncome: number;
+  /** 캔버스 수입원 노드 표시 */
+  showIncomeSources?: boolean;
+  onShowIncomeSourcesChange?: (show: boolean) => void;
   onAddGroup: () => void;
 }) {
   return (
     <div className="space-y-4">
       <div className="text-sm font-bold text-ink-800">월수입</div>
-      <div className="rounded-xl border border-brand-100 bg-brand-50 px-3 py-3 text-center">
-        <div className="tnum text-xl font-extrabold text-brand-800">{monthlyIncome}만</div>
-        <div className="mt-0.5 text-[11px] text-brand-500">이번 달 기준</div>
+      <div className="rounded-xl border border-gold-200 bg-gold-50 px-3 py-3 text-center">
+        <div className="tnum text-xl font-extrabold text-gold-700">{monthlyIncome}만</div>
+        <div className="mt-0.5 text-[11px] text-gold-500">이번 달 기준</div>
       </div>
+      {onShowIncomeSourcesChange && (
+        <label className="flex items-center justify-between rounded-xl border border-ink-200 px-3 py-2.5 text-sm">
+          <span className="text-ink-700">
+            <span className="font-semibold">수입원 표시</span>
+            <span className="mt-0.5 block text-[11px] font-normal text-ink-400">
+              캔버스 왼쪽 수입 노드 on/off
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            className="h-4 w-4 accent-brand-700"
+            checked={showIncomeSources}
+            onChange={(e) => onShowIncomeSourcesChange(e.target.checked)}
+          />
+        </label>
+      )}
       <Button className="w-full" onClick={onAddGroup}>
         <Icon name="plus" size={14} /> 묶음 추가
       </Button>
@@ -42,9 +63,9 @@ export function PoolHubInspector({
     <div className="space-y-3">
       <div className="text-sm font-bold text-ink-800">자산</div>
       {amt > 0 ? (
-        <div className="rounded-xl border border-gold-200 bg-gold-50 px-3 py-2 text-center">
-          <div className="text-[11px] font-semibold text-gold-600">현금흐름(추정)</div>
-          <div className="tnum text-lg font-extrabold text-ink-800">월 {amt}만</div>
+        <div className="rounded-xl border border-sage-100 bg-sage-50 px-3 py-2 text-center">
+          <div className="text-[11px] font-semibold text-sage-600">현금흐름(추정)</div>
+          <div className="tnum text-lg font-extrabold text-sage-700">월 {amt}만</div>
         </div>
       ) : (
         <div className="rounded-xl border border-ink-100 bg-ink-50 px-3 py-2 text-center text-xs text-ink-400">

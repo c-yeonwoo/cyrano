@@ -3,12 +3,52 @@ import type {
   ActionItem,
   Bucket,
   BucketCategory,
+  DayLog,
   IncomeSource,
   Profile,
+  RoutineItem,
   Scenario,
   Scene,
+  Tracking,
 } from "../types";
 import { emptyProfile } from "./defaults";
+import { normalizeTracking } from "../tracking";
+
+/** action_items jsonb: 레거시 ActionItem[] 또는 v2 { routines, logs, actions } */
+function trackingFromDb(raw: unknown, checkIns: string[]): Tracking {
+  if (raw && typeof raw === "object" && !Array.isArray(raw) && (raw as { v?: number }).v === 2) {
+    const o = raw as {
+      routines?: RoutineItem[];
+      logs?: DayLog[];
+      actions?: ActionItem[];
+      dismissedNextStepStage?: number | null;
+    };
+    return normalizeTracking({
+      routines: o.routines ?? [],
+      logs: o.logs ?? [],
+      actions: o.actions ?? [],
+      checkIns,
+      dismissedNextStepStage: o.dismissedNextStepStage ?? null,
+    });
+  }
+  return normalizeTracking({
+    actions: Array.isArray(raw) ? (raw as ActionItem[]) : [],
+    checkIns,
+    routines: [],
+    logs: [],
+  });
+}
+
+function trackingToDb(t: Tracking | undefined) {
+  const n = normalizeTracking(t);
+  return {
+    v: 2 as const,
+    routines: n.routines,
+    logs: n.logs,
+    actions: n.actions,
+    dismissedNextStepStage: n.dismissedNextStepStage ?? null,
+  };
+}
 
 /**
  * Profile ↔ Supabase 정규화 테이블(0001_init.sql) 매핑.
@@ -84,10 +124,7 @@ export async function loadProfile(
   const profile = emptyProfile();
   profile.onboardedAt = prof.onboarded_at ?? null;
   profile.updatedAt = new Date().toISOString();
-  profile.tracking = {
-    actions: (prof.action_items as ActionItem[]) ?? [],
-    checkIns: (prof.check_ins as string[]) ?? [],
-  };
+  profile.tracking = trackingFromDb(prof.action_items, (prof.check_ins as string[]) ?? []);
 
   if (visionRes.data) {
     const v = visionRes.data;
@@ -135,7 +172,7 @@ export async function saveProfile(
     {
       id: userId,
       onboarded_at: profile.onboardedAt,
-      action_items: profile.tracking?.actions ?? [],
+      action_items: trackingToDb(profile.tracking),
       check_ins: profile.tracking?.checkIns ?? [],
     },
     { onConflict: "id" },

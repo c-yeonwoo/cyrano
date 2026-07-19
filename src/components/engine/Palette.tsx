@@ -27,15 +27,18 @@ import { Icon } from "@/components/Icon";
 import { parseNum } from "@/lib/format";
 
 const CAT_ORDER: BucketCategory[] = ["invest", "save", "spend"];
-const CAT_TEXT: Record<BucketCategory, string> = {
-  invest: "text-amber-700",
-  save: "text-emerald-700",
-  spend: "text-sky-700",
+/** 흰 카드 + 왼쪽 액센트만으로 구별 (파스텔 면 채우기 X) */
+const CAT_ACCENT: Record<BucketCategory, string> = {
+  invest: "border-l-invest-500 text-invest-700",
+  save: "border-l-save-500 text-save-700",
+  spend: "border-l-spend-500 text-spend-700",
 };
-const CAT_CARD: Record<BucketCategory, string> = {
-  invest: "border-amber-200 bg-amber-50 hover:bg-amber-100",
-  save: "border-emerald-200 bg-emerald-50 hover:bg-emerald-100",
-  spend: "border-sky-200 bg-sky-50 hover:bg-sky-100",
+const CAT_ROW =
+  "border border-ink-200 border-l-[3px] bg-white hover:bg-ink-50";
+const CAT_TEXT: Record<BucketCategory, string> = {
+  invest: "text-invest-700",
+  save: "text-save-700",
+  spend: "text-spend-700",
 };
 
 export function resolveAddParent(
@@ -276,12 +279,12 @@ export function Palette({
               draggable
               onDragStart={(e) => e.dataTransfer.setData("application/bucket-preset", p.key)}
               onClick={() => addPreset(p)}
-              className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm font-semibold text-ink-700 transition-colors ${CAT_CARD[p.category]}`}
+              className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold transition-colors ${CAT_ROW} ${CAT_ACCENT[p.category]}`}
             >
-              <Icon name={p.icon} size={18} className="shrink-0" />
-              <span className="min-w-0">
+              <Icon name={p.icon} size={18} className={`shrink-0 ${CAT_TEXT[p.category]}`} />
+              <span className="min-w-0 text-ink-700">
                 <span className="block">{p.name}</span>
-                <span className="block text-[10px] font-normal opacity-70">{p.desc}</span>
+                <span className="block text-[10px] font-normal text-ink-400">{p.desc}</span>
               </span>
             </button>
           ))}
@@ -303,9 +306,9 @@ export function Palette({
                   draggable
                   onDragStart={(e) => e.dataTransfer.setData("application/bucket-preset", p.key)}
                   onClick={() => addPreset(p)}
-                  className={`flex w-full items-center gap-2 rounded-xl border px-3 py-2 text-left text-sm font-semibold text-ink-700 transition-colors ${CAT_CARD[cat]}`}
+                  className={`flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-semibold text-ink-700 transition-colors ${CAT_ROW} ${CAT_ACCENT[cat]}`}
                 >
-                  <Icon name={p.icon} size={18} className="shrink-0" />
+                  <Icon name={p.icon} size={18} className={`shrink-0 ${CAT_TEXT[cat]}`} />
                   {p.name}
                 </button>
               ))}
@@ -324,7 +327,9 @@ export function Palette({
               type="button"
               onClick={() => setCustomCat(c)}
               className={`flex-1 rounded-lg border px-2 py-1 text-xs ${
-                customCat === c ? CAT_CARD[c] + " font-bold" : "border-ink-200 text-ink-500"
+                customCat === c
+                  ? `${CAT_ROW} ${CAT_ACCENT[c]} font-bold`
+                  : "border-ink-200 text-ink-500"
               }`}
             >
               {CATEGORY_META[c].label}

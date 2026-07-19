@@ -39,6 +39,7 @@ export function emptyProfile(): Profile {
     tracking: emptyTracking(),
     // 신규 프로필은 데모 시드로 시작 — 빈 화면보다 루프 이해에 도움
     spending: seedSpending(),
+    uiPrefs: { hiddenHomeMetrics: [] },
     onboardedAt: null,
     updatedAt: new Date(0).toISOString(),
   };

@@ -10,14 +10,17 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
  * 이렇게 한 이유: 백엔드 미설정 상태에서도 앱이 즉시 '실행 가능'하도록.
  */
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+/** publishable(sb_…) 또는 legacy anon JWT — 둘 다 createClient 2번째 인자로 사용 */
+const publicKey =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-export const isSupabaseConfigured = Boolean(url && anonKey);
+export const isSupabaseConfigured = Boolean(url && publicKey);
 
 let client: SupabaseClient | null = null;
 
 export function getSupabase(): SupabaseClient | null {
   if (!isSupabaseConfigured) return null;
-  if (!client) client = createClient(url!, anonKey!);
+  if (!client) client = createClient(url!, publicKey!);
   return client;
 }

@@ -230,3 +230,20 @@ export function categoryLabel(c: SpendCategory): string {
 export function todayKey(): string {
   return toDateKey(new Date());
 }
+
+/** 최근 N개월 월평균 지출(원) = 고정 + 해당 월 변동 */
+export function avgMonthlySpendWon(
+  fixed: FixedExpense[],
+  logs: VariableLog[],
+  monthCount = 3,
+  now: Date = new Date(),
+): number {
+  if (monthCount <= 0) return 0;
+  const fixedWon = sumFixed(fixed);
+  let sum = 0;
+  for (let i = 0; i < monthCount; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    sum += fixedWon + sumLogs(logsInMonth(logs, d.getFullYear(), d.getMonth()));
+  }
+  return sum / monthCount;
+}

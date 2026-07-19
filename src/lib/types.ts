@@ -87,7 +87,7 @@ export const CATEGORY_META: Record<
 > = {
   invest: { label: "투자", accent: "amber", note: "" },
   save: { label: "저축", accent: "emerald", note: "" },
-  spend: { label: "지출", accent: "sky", note: "" },
+  spend: { label: "지출", accent: "rose", note: "" },
 };
 
 export interface Bucket {
@@ -132,6 +132,11 @@ export interface EngineConfig {
    * key = edge id (`from__to`)
    */
   edgeControls?: Record<string, { x: number; y: number }>;
+  /**
+   * 캔버스에 수입원 노드 표시 여부.
+   * 미설정·true = 표시, false = 숨김 (월수입 합계·배분은 유지).
+   */
+  showIncomeSources?: boolean;
 }
 
 export interface Scenario {
@@ -150,14 +155,51 @@ export interface ActionItem {
   doneAt?: string;
 }
 
+/** 원데이 루틴 항목 */
+export interface RoutineItem {
+  id: string;
+  title: string;
+  /** daily = 매일 · weekdays = JS getDay() 0=일…6=토 */
+  schedule: "daily" | { weekdays: number[] };
+  position: number;
+  createdAt: string;
+}
+
+/** 하루 체크 로그 (YYYY-MM-DD) */
+export interface DayLog {
+  date: string;
+  /** routineId → 완료 여부 */
+  done: Record<string, boolean>;
+}
+
 export interface Tracking {
+  /** @deprecated 루틴으로 이전. 하위호환 보관 */
   actions: ActionItem[];
-  /** 주간 점검 완료일(ISO date) 목록 → 스트릭 계산 */
+  /** @deprecated 일 스트릭·잔디로 대체. 하위호환 보관 */
   checkIns: string[];
+  routines: RoutineItem[];
+  logs: DayLog[];
+  /**
+   * 닫아 둔 「다음 한 걸음」넛지의 stage 번호.
+   * 같은 stage면 다시 안 보이고, stage가 바뀌면 새 넛지.
+   */
+  dismissedNextStepStage?: number | null;
 }
 
 export function emptyTracking(): Tracking {
-  return { actions: [], checkIns: [] };
+  return {
+    actions: [],
+    checkIns: [],
+    routines: [],
+    logs: [],
+    dismissedNextStepStage: null,
+  };
+}
+
+/** UI 선호 (홈 지표 가리기 등) */
+export interface UiPrefs {
+  /** 홈「자산·현금흐름」타일에서 금액을 가린 metric id */
+  hiddenHomeMetrics?: string[];
 }
 
 /** 전체 사용자 프로필 (localStorage / Supabase 공용 shape) */
@@ -169,6 +211,7 @@ export interface Profile {
   tracking: Tracking;
   /** 지출관리(E). 금액 단위는 원. 구버전 persist엔 없을 수 있음 */
   spending: SpendingState;
+  uiPrefs?: UiPrefs;
   onboardedAt: string | null;
   updatedAt: string;
 }

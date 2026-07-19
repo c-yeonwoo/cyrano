@@ -1,15 +1,23 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { useProfile } from "@/lib/store/useProfile";
 import { useDerived } from "@/lib/useDerived";
 import { STAGE_NAMES } from "@/lib/engine";
 import { formatKRW, formatPct } from "@/lib/format";
-import { Card, StatCard, Button, EmptyState } from "@/components/ui";
-import { Icon, type IconName } from "@/components/Icon";
+import { avgMonthlySpendWon } from "@/lib/spending";
+import { ensureSpending } from "@/lib/store/defaults";
+import { Card, Button, EmptyState } from "@/components/ui";
+import { Icon } from "@/components/Icon";
 import { LogoMark } from "@/components/Logo";
 import { AssetChart } from "@/components/AssetChart";
-import { computeStreak } from "@/lib/tracking";
+import { VisionBoard } from "@/components/home/VisionBoard";
+import {
+  HomeMetricGrid,
+  buildHomeMetrics,
+} from "@/components/home/HomeMetricGrid";
+import { computeDailyStreak, normalizeTracking } from "@/lib/tracking";
 import { emptyTracking } from "@/lib/types";
 import { BRAND } from "@/lib/brand";
 
@@ -17,6 +25,12 @@ export default function HomePage() {
   const profile = useProfile((s) => s.profile);
   const { stage, projection } = useDerived();
   const { vision, snapshot } = profile;
+
+  const spending = ensureSpending(profile);
+  const avgSpendWon3m = useMemo(
+    () => avgMonthlySpendWon(spending.fixed, spending.logs, 3),
+    [spending.fixed, spending.logs],
+  );
 
   if (!snapshot || !stage) {
     return (
@@ -45,152 +59,161 @@ export default function HomePage() {
   }
 
   const m = stage.metrics;
-  const streak = computeStreak((profile.tracking ?? emptyTracking()).checkIns);
+  const tracking = normalizeTracking(profile.tracking ?? emptyTracking());
+  const streak = computeDailyStreak(tracking.routines, tracking.logs);
   const targetYears = vision?.targetYears ?? 15;
-  const whyLine = vision?.why?.trim();
-  const firstScene = vision?.scenes.find((s) => s.text.trim());
+  const atYear = projection
+    ? projection.curve[Math.min(targetYears, projection.curve.length - 1)]
+    : null;
+
+  const homeMetrics = buildHomeMetrics({
+    cash: snapshot.cash,
+    investAssets: snapshot.investAssets,
+    realEstate: snapshot.realEstate,
+    liabilities: snapshot.liabilities,
+    netWorth: m.netWorth,
+    totalMonthlyIncome: m.totalMonthlyIncome,
+    laborSharePct: m.laborSharePct,
+    capitalSharePct: m.capitalSharePct,
+    savingsRatePct: m.savingsRatePct,
+    passiveToSpendingPct: m.passiveToSpendingPct,
+    avgSpendWon3m,
+  });
 
   return (
-    <div className="space-y-6">
-      {/* 한 화면 한 메시지: 브랜드 + 단계·달성·다음 */}
+    <div className="mx-auto max-w-3xl space-y-6">
+      {/* 단계 히어로 */}
       <section className="rounded-2xl bg-brand-900 p-5 text-white md:p-6">
         <div className="mb-4 flex items-center gap-2.5">
           <LogoMark size={28} />
           <span className="font-display text-base font-bold tracking-tight text-white">
             {BRAND.mark}
           </span>
-          <span className="text-[11px] text-white/40">{BRAND.ko}</span>
         </div>
-
-        <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
-          <div>
-            <div className="text-xs text-white/45">지금 위치</div>
-            <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-white">
-              {stage.stage} / 8 · {STAGE_NAMES[stage.stage]}
-            </h1>
-            {(whyLine || firstScene) && (
-              <p className="mt-2 flex items-start gap-1.5 text-sm text-white/65">
-                <Icon name="target" size={15} className="mt-0.5 shrink-0 text-gold-400" />
-                <span>
-                  {whyLine || firstScene?.text}
-                  {vision && ` · 목표 ${formatKRW(vision.goalNetworth)}`}
-                </span>
-              </p>
-            )}
-          </div>
-          {vision && projection && (
-            <div className="flex gap-6 border-t border-white/12 pt-3 sm:border-l sm:border-t-0 sm:pt-0 sm:pl-6">
-              <div>
-                <div className="text-[11px] text-white/45">목표 대비</div>
-                <div className="tnum text-xl font-bold text-gold-400">
-                  {formatPct(projection.achievementPct, 1)}
-                </div>
-              </div>
-              <div>
-                <div className="text-[11px] text-white/45">예상 ETA</div>
-                <div className="tnum text-xl font-bold text-gold-400">
-                  {projection.targetReachYear != null
-                    ? `약 ${projection.targetReachYear}년`
-                    : "재조정 필요"}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        <div className="text-xs text-white/45">지금 단계</div>
+        <h1 className="mt-1 text-2xl font-extrabold tracking-tight">
+          <span className="tnum text-gold-400">{stage.stage}</span>
+          <span className="text-white/40"> / 8</span>
+          <span className="mx-2 text-white/30">·</span>
+          {STAGE_NAMES[stage.stage]}
+        </h1>
+        {vision && (
+          <p className="mt-2 text-sm text-white/55">
+            목표 {formatKRW(vision.goalNetworth)}
+            {vision.goalPassiveIncome > 0 &&
+              ` · 월 패시브 ${formatKRW(vision.goalPassiveIncome)}`}
+            {` · ${targetYears}년`}
+          </p>
+        )}
       </section>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
-        {/* 엔진 미니뷰 — 보더 없이 open section에 가깝게 */}
-        <div>
-          <div className="mb-2 flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-sm font-bold text-ink-700">
-              <Icon name="trending-up" size={16} className="text-brand-600" />
-              {targetYears}년 뒤 미리보기
-            </div>
-            <Link href="/engine">
-              <Button className="!py-1.5 !text-xs">
-                자산 설계 <Icon name="arrow-right" size={14} />
-              </Button>
-            </Link>
+      {/* 비전보드 */}
+      <VisionBoard vision={vision} />
+
+      {/* N년 뒤 미리보기 + 지표 */}
+      <section>
+        <div className="mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-sm font-bold text-ink-700">
+            <Icon name="trending-up" size={16} className="text-sage-600" />
+            {targetYears}년 뒤 미리보기
           </div>
-          <Card>
-            {projection && profile.engine.buckets.length > 0 ? (
-              <AssetChart
-                curve={projection.curve}
-                goalNetworth={vision?.goalNetworth}
-                targetReachYear={projection.targetReachYear}
-                height={200}
-                compact
-              />
-            ) : (
-              <EmptyState
-                icon="engine"
-                title="아직 배분이 없어요"
-                desc="항목을 추가하면 자산 곡선이 그려집니다."
-                action={
-                  <Link href="/engine">
-                    <Button>설계 시작</Button>
-                  </Link>
-                }
-              />
-            )}
-          </Card>
+          <Link href="/engine">
+            <Button className="!py-1.5 !text-xs">
+              자산 설계 <Icon name="arrow-right" size={14} />
+            </Button>
+          </Link>
         </div>
 
-        {/* 다음 한 걸음 — sage (코치 순간, invest 기능색과 분리) */}
-        <Card className="border-sage-100 bg-sage-50">
-          <div className="flex items-center gap-1.5 text-sm font-bold text-sage-700">
-            <Icon name="check-circle" size={16} />
-            다음 한 걸음
+        {projection && profile.engine.buckets.length > 0 && atYear ? (
+          <Card className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <PreviewStat
+                label={`예상 순자산`}
+                value={formatKRW(atYear.totalNetWorth)}
+              />
+              <PreviewStat
+                label="월 패시브"
+                value={formatKRW(atYear.monthlyPassiveIncome)}
+              />
+              <PreviewStat
+                label="목표 대비"
+                value={formatPct(projection.achievementPct, 1)}
+              />
+              <PreviewStat
+                label="예상 ETA"
+                value={
+                  projection.targetReachYear != null
+                    ? `약 ${projection.targetReachYear}년`
+                    : "재조정"
+                }
+              />
+            </div>
+            <AssetChart
+              curve={projection.curve.slice(0, targetYears + 1)}
+              goalNetworth={vision?.goalNetworth}
+              targetReachYear={projection.targetReachYear}
+              height={200}
+              compact
+            />
+            {(projection.passiveReachYear != null ||
+              projection.crossoverYear != null) && (
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-400">
+                {projection.passiveReachYear != null && (
+                  <span>패시브 목표 · {projection.passiveReachYear}년차</span>
+                )}
+                {projection.crossoverYear != null && (
+                  <span>자본≥근로 · {projection.crossoverYear}년차</span>
+                )}
+              </div>
+            )}
+          </Card>
+        ) : (
+          <Card>
+            <EmptyState
+              icon="engine"
+              title="아직 배분이 없어요"
+              desc="항목을 추가하면 자산 곡선이 그려집니다."
+              action={
+                <Link href="/engine">
+                  <Button>설계 시작</Button>
+                </Link>
+              }
+            />
+          </Card>
+        )}
+      </section>
+
+      {/* 다음 한 걸음 */}
+      <Card className="border-sage-100 bg-sage-50">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 text-sm font-bold text-sage-700">
+              <Icon name="check-circle" size={16} />
+              다음 한 걸음
+            </div>
+            <p className="mt-2 text-sm text-sage-700">{stage.nextStep}</p>
           </div>
-          <p className="mt-2 text-sm text-sage-700">{stage.nextStep}</p>
           <Link href="/tracking">
             <Button
               variant="outline"
-              className="mt-4 w-full border-sage-500/35 text-sage-700 hover:border-sage-500 hover:bg-sage-50"
+              className="shrink-0 border-sage-500/35 text-sage-700 hover:border-sage-500 hover:bg-sage-50"
             >
-              {streak > 0 ? `실천하기 · ${streak}주 연속` : "실천하기"}
+              {streak > 0 ? `실천 · ${streak}일` : "실천하기"}
             </Button>
           </Link>
-        </Card>
-      </div>
-
-      {/* 자산 요약 — open section */}
-      <div>
-        <div className="mb-2 text-sm font-bold text-ink-700">자산 · 현금흐름</div>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <StatCard label="순자산" value={formatKRW(m.netWorth)} />
-          <StatCard label="저축률" value={formatPct(Math.max(0, m.savingsRatePct))} />
-          <StatCard
-            label="소득구조 (근로:자본)"
-            value={`${Math.round(m.laborSharePct)}:${Math.round(m.capitalSharePct)}`}
-          />
-          <StatCard label="passive / 생활비" value={formatPct(m.passiveToSpendingPct)} />
         </div>
-      </div>
+      </Card>
 
-      <div>
-        <div className="mb-2 text-sm font-bold text-ink-700">바로가기</div>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {(
-            [
-              { href: "/engine", label: "자산 설계", icon: "engine" },
-              { href: "/spending", label: "지출", icon: "wallet" },
-              { href: "/goals", label: "목표", icon: "target" },
-              { href: "/tracking", label: "실천", icon: "check-circle" },
-            ] as { href: string; label: string; icon: IconName }[]
-          ).map((q) => (
-            <Link
-              key={q.href}
-              href={q.href}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-ink-200 bg-white py-3 text-center text-sm font-medium text-ink-700 hover:bg-ink-100"
-            >
-              <Icon name={q.icon} size={16} className="text-ink-400" />
-              {q.label}
-            </Link>
-          ))}
-        </div>
-      </div>
+      <HomeMetricGrid metrics={homeMetrics} />
+    </div>
+  );
+}
+
+function PreviewStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-ink-50 px-3 py-2">
+      <div className="text-[10px] font-medium text-ink-400">{label}</div>
+      <div className="tnum mt-0.5 text-sm font-extrabold text-ink-800">{value}</div>
     </div>
   );
 }

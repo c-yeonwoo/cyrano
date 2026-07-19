@@ -1,6 +1,6 @@
 import type { IconName } from "@/components/Icon";
 
-/** 지출 카테고리 — 엔진 spend(sky)와 별개로, 지출관리 내부 분류 */
+/** 지출 카테고리 — 엔진 spend(rose)와 별개로, 지출관리 내부 분류 */
 export type SpendCategory =
   | "food"
   | "cafe"

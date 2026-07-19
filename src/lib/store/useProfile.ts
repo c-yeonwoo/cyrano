@@ -16,9 +16,17 @@ import type { FixedExpense, SpendingState, VariableLog } from "../spending/types
 import type { SpendCategory, SpendFavorite } from "../spending/catalog";
 import { emptyProfile, ensureSpending } from "./defaults";
 import { seedSpending } from "../spending/seed";
-import { hasCheckedInThisWeek } from "../tracking";
+import {
+  DEFAULT_ROUTINES,
+  dateKey,
+  hasCheckedInThisWeek,
+  normalizeSchedule,
+  normalizeTracking,
+  reorderRoutinesInDay as reorderRoutinesInDayFn,
+} from "../tracking";
 import { collectDescendantIds } from "../engine/tree";
 import { normalizeIncomeSources } from "../income";
+import type { RoutineItem } from "../types";
 
 const MAX_SCENARIOS = 5;
 
@@ -37,7 +45,20 @@ function touch(p: Profile): Profile {
 }
 
 function ensureTracking(p: Profile): Tracking {
-  return p.tracking ?? emptyTracking();
+  return normalizeTracking(p.tracking ?? emptyTracking());
+}
+
+function seedDefaultRoutines(t: Tracking): Tracking {
+  if (t.routines.length > 0) return t;
+  const now = new Date().toISOString();
+  return {
+    ...t,
+    routines: DEFAULT_ROUTINES.map((r, i) => ({
+      ...r,
+      id: `r_default_${i}`,
+      createdAt: now,
+    })),
+  };
 }
 
 function migrateBucketLabels(name: string): string {
@@ -70,6 +91,7 @@ function migrateProfile(p: Profile): Profile {
       },
     };
   }
+  next = { ...next, tracking: seedDefaultRoutines(ensureTracking(next)) };
   return next;
 }
 
@@ -93,6 +115,16 @@ interface ProfileState {
   toggleAction: (id: string) => void;
   removeAction: (id: string) => void;
   weeklyCheckIn: () => void;
+  addRoutine: (
+    title: string,
+    schedule?: RoutineItem["schedule"],
+  ) => void;
+  removeRoutine: (id: string) => void;
+  updateRoutine: (id: string, patch: Partial<Pick<RoutineItem, "title" | "schedule">>) => void;
+  reorderRoutinesInDay: (date: string, orderedIds: string[]) => void;
+  toggleRoutineDay: (date: string, routineId: string) => void;
+  dismissNextStepNudge: (stage: number) => void;
+  toggleHomeMetricHidden: (metricId: string) => void;
 
   setVariableBudget: (won: number) => void;
   addVariableLog: (input: {
@@ -210,48 +242,11 @@ export const useProfile = create<ProfileState>()(
           }),
         })),
 
-      addAction: (text) =>
-        set((st) => {
-          const t = ensureTracking(st.profile);
-          const action = {
-            id: sid(),
-            text: text.trim(),
-            done: false,
-            createdAt: new Date().toISOString(),
-          };
-          return {
-            profile: touch({ ...st.profile, tracking: { ...t, actions: [action, ...t.actions] } }),
-          };
-        }),
+      addAction: (text) => get().addRoutine(text),
 
-      toggleAction: (id) =>
-        set((st) => {
-          const t = ensureTracking(st.profile);
-          return {
-            profile: touch({
-              ...st.profile,
-              tracking: {
-                ...t,
-                actions: t.actions.map((a) =>
-                  a.id === id
-                    ? { ...a, done: !a.done, doneAt: !a.done ? new Date().toISOString() : undefined }
-                    : a,
-                ),
-              },
-            }),
-          };
-        }),
+      toggleAction: (id) => get().toggleRoutineDay(dateKey(), id),
 
-      removeAction: (id) =>
-        set((st) => {
-          const t = ensureTracking(st.profile);
-          return {
-            profile: touch({
-              ...st.profile,
-              tracking: { ...t, actions: t.actions.filter((a) => a.id !== id) },
-            }),
-          };
-        }),
+      removeAction: (id) => get().removeRoutine(id),
 
       weeklyCheckIn: () =>
         set((st) => {
@@ -261,6 +256,125 @@ export const useProfile = create<ProfileState>()(
             profile: touch({
               ...st.profile,
               tracking: { ...t, checkIns: [...t.checkIns, new Date().toISOString()] },
+            }),
+          };
+        }),
+
+      addRoutine: (title, schedule = "daily") =>
+        set((st) => {
+          const t = ensureTracking(st.profile);
+          const trimmed = title.trim();
+          if (!trimmed) return {};
+          const routine: RoutineItem = {
+            id: sid(),
+            title: trimmed,
+            schedule: normalizeSchedule(schedule),
+            position: t.routines.length,
+            createdAt: new Date().toISOString(),
+          };
+          return {
+            profile: touch({
+              ...st.profile,
+              tracking: { ...t, routines: [...t.routines, routine] },
+            }),
+          };
+        }),
+
+      removeRoutine: (id) =>
+        set((st) => {
+          const t = ensureTracking(st.profile);
+          return {
+            profile: touch({
+              ...st.profile,
+              tracking: {
+                ...t,
+                routines: t.routines.filter((r) => r.id !== id),
+                logs: t.logs.map((l) => {
+                  if (!(id in l.done)) return l;
+                  const done = { ...l.done };
+                  delete done[id];
+                  return { ...l, done };
+                }),
+              },
+            }),
+          };
+        }),
+
+      updateRoutine: (id, patch) =>
+        set((st) => {
+          const t = ensureTracking(st.profile);
+          return {
+            profile: touch({
+              ...st.profile,
+              tracking: {
+                ...t,
+                routines: t.routines.map((r) => {
+                  if (r.id !== id) return r;
+                  return {
+                    ...r,
+                    ...(patch.title != null ? { title: patch.title.trim() || r.title } : {}),
+                    ...(patch.schedule != null
+                      ? { schedule: normalizeSchedule(patch.schedule) }
+                      : {}),
+                  };
+                }),
+              },
+            }),
+          };
+        }),
+
+      reorderRoutinesInDay: (date, orderedIds) =>
+        set((st) => {
+          const t = ensureTracking(st.profile);
+          return {
+            profile: touch({
+              ...st.profile,
+              tracking: {
+                ...t,
+                routines: reorderRoutinesInDayFn(t.routines, date, orderedIds),
+              },
+            }),
+          };
+        }),
+
+      toggleRoutineDay: (date, routineId) =>
+        set((st) => {
+          const t = ensureTracking(st.profile);
+          const existing = t.logs.find((l) => l.date === date);
+          const prev = existing?.done[routineId] ?? false;
+          const nextDone = { ...(existing?.done ?? {}), [routineId]: !prev };
+          const logs = existing
+            ? t.logs.map((l) => (l.date === date ? { ...l, done: nextDone } : l))
+            : [...t.logs, { date, done: nextDone }];
+          return {
+            profile: touch({
+              ...st.profile,
+              tracking: { ...t, logs },
+            }),
+          };
+        }),
+
+      dismissNextStepNudge: (stage) =>
+        set((st) => {
+          const t = ensureTracking(st.profile);
+          return {
+            profile: touch({
+              ...st.profile,
+              tracking: { ...t, dismissedNextStepStage: stage },
+            }),
+          };
+        }),
+
+      toggleHomeMetricHidden: (metricId) =>
+        set((st) => {
+          const prefs = st.profile.uiPrefs ?? { hiddenHomeMetrics: [] };
+          const hidden = new Set(prefs.hiddenHomeMetrics ?? []);
+          if (hidden.has(metricId)) hidden.delete(metricId);
+          else hidden.add(metricId);
+          return {
+            profile: touch({
+              ...st.profile,
+              uiPrefs: { ...prefs, hiddenHomeMetrics: [...hidden] },
             }),
           };
         }),

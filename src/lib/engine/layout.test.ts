@@ -48,6 +48,18 @@ describe("layoutEngineGraph", () => {
     expect(edges.some((e) => e.fromId === "inc_labor" && e.toId === "__income__")).toBe(true);
   });
 
+  it("showIncomeSources=false면 수입원 노드만 숨기고 합계는 유지", () => {
+    const { nodes, edges, monthlyIncome } = layoutEngineGraph({
+      buckets: [b({ id: "invest", ratioPct: 100 })],
+      incomeSources: sources,
+      showIncomeSources: false,
+    });
+    expect(monthlyIncome).toBe(320);
+    expect(nodes.some((n) => n.kind === "source")).toBe(false);
+    expect(nodes.some((n) => n.id === "__income__")).toBe(true);
+    expect(edges.some((e) => e.toId === "__income__")).toBe(false);
+  });
+
   it("지출 루트는 투자 루트보다 아래에 배치", () => {
     const { nodes } = layoutEngineGraph({
       buckets: [
