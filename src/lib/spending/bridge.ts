@@ -1,6 +1,6 @@
 import type { Bucket } from "../types";
 import { bucketFromPreset, presetByKey } from "../catalog";
-import { childrenOf, roots } from "../engine/tree";
+import { childrenOf, monthlyManwon, roots } from "../engine/tree";
 import type { SpendingState } from "./types";
 import { logsInMonth, sumFixed, sumLogs } from "./calc";
 
@@ -11,6 +11,10 @@ import { logsInMonth, sumFixed, sumLogs } from "./calc";
 
 export function wonToManwon(won: number): number {
   return Math.floor(won / 10_000);
+}
+
+export function manwonToWon(manwon: number): number {
+  return Math.max(0, Math.round(manwon) * 10_000);
 }
 
 /** Phase A / 엔진 sync용 — 당월 변동 + 고정 전체(결제일 무관) */
@@ -204,4 +208,62 @@ export function applySpendRatioToBuckets(
   }
 
   return { buckets: next, createdSpend, createdChildren };
+}
+
+/** Phase C — 엔진 지출 한도 → 변동지출 예산(원) 제안 */
+export type EngineVariableBudgetSuggestion = {
+  suggestedWon: number;
+  spendManwon: number;
+  variableManwon: number;
+  fixedManwon: number;
+  /** variable 노드 월환산 vs 지출−고정 */
+  source: "variable_node" | "spend_minus_fixed";
+};
+
+export function engineVariableBudgetSuggestion(
+  buckets: Bucket[],
+  monthlyIncomeManwon: number,
+  /** 엔진에 고정 자식이 없을 때 쓰는 지출관리 고정합(원) */
+  fixedExpenseWon = 0,
+): EngineVariableBudgetSuggestion | null {
+  if (monthlyIncomeManwon <= 0) return null;
+  const spend = findSpendRoot(buckets);
+  if (!spend) return null;
+
+  const spendManwon = monthlyManwon(spend, buckets, monthlyIncomeManwon);
+  if (spendManwon <= 0) return null;
+
+  const kids = childrenOf(spend.id, buckets);
+  const variable = matchSpendChild(kids, "variable");
+  const fixed = matchSpendChild(kids, "fixed");
+  const fixedManwon = fixed
+    ? monthlyManwon(fixed, buckets, monthlyIncomeManwon)
+    : wonToManwon(fixedExpenseWon);
+
+  if (variable) {
+    const variableManwon = monthlyManwon(variable, buckets, monthlyIncomeManwon);
+    return {
+      suggestedWon: manwonToWon(variableManwon),
+      spendManwon,
+      variableManwon,
+      fixedManwon,
+      source: "variable_node",
+    };
+  }
+
+  const variableManwon = Math.max(0, spendManwon - fixedManwon);
+  return {
+    suggestedWon: manwonToWon(variableManwon),
+    spendManwon,
+    variableManwon,
+    fixedManwon,
+    source: "spend_minus_fixed",
+  };
+}
+
+export function isEngineBudgetDifferent(
+  currentBudgetWon: number,
+  suggestion: EngineVariableBudgetSuggestion,
+): boolean {
+  return currentBudgetWon !== suggestion.suggestedWon;
 }

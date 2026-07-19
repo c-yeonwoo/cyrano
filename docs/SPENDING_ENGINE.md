@@ -1,7 +1,7 @@
 # 지출관리 ↔ 자산 설계 엔진 연동
 
-> 상태: **Phase A·B UX 구현** · 자동 sync 없음  
-> 단위 브리지: `src/lib/spending/bridge.ts` · UI: `ApplySpendingToEngine` / `SpendRatioSuggestion`
+> 상태: **Phase A·B·C UX 구현** · 자동 sync 없음 · Supabase 버전 필드는 이후  
+> 단위 브리지: `src/lib/spending/bridge.ts`
 
 ## 1. 역할 분리
 
@@ -38,10 +38,11 @@
 3. 수락 시 canvas 위치 유지 · 없으면 지출 트리 생성 · 진단 `monthlySpending`도 동일 실측으로 맞춤.
 4. analytics: `spend_ratio_suggestion_applied`.
 
-### Phase C — 양방향·루프 (이후)
-- 엔진에서 지출 한도를 바꾸면 변동 **예산** 제안(고정 제외한 잔여).
-- 예산 초과 페이스 → 엔진 `g_spend` 경고 링크.
-- Supabase sync 시 spending ↔ snapshot 버전 필드.
+### Phase C — 양방향·루프 ✅
+1. `engineVariableBudgetSuggestion` — 엔진 변동 노드 월환산(없으면 지출−고정) → 변동 예산(원).
+2. 엔진: `PushBudgetToVariableBar` / Inspector · 변동탭: `EngineBudgetSuggest`.
+3. 예산 초과 페이스 → BudgetHero에서 `/engine` 링크 (`budget_overpace_engine_link`).
+4. Supabase spending↔snapshot 버전 필드 — **미구현(이후)**.
 
 ## 4. 하지 않을 것 (v1)
 

@@ -35,9 +35,9 @@ import {
 } from "./HubInspector";
 import {
   SpendRatioSuggestionBar,
-  SpendRatioSuggestionInline,
   useSpendSuggestionPending,
 } from "./SpendRatioSuggestion";
+import { PushBudgetToVariableBar } from "./PushBudgetToVariable";
 
 export function EngineBuilder() {
   const snapshot = useProfile((s) => s.profile.snapshot) ?? DEFAULT_SNAPSHOT;
@@ -265,7 +265,12 @@ export function EngineBuilder() {
 
         {/* 흐름도 + 결과 */}
         <div className="min-w-0 flex-1 space-y-4">
-          {buckets.length > 0 && <SpendRatioSuggestionBar />}
+          {buckets.length > 0 && (
+            <div className="space-y-2">
+              <SpendRatioSuggestionBar />
+              <PushBudgetToVariableBar />
+            </div>
+          )}
           <EngineCanvas
             buckets={buckets}
             engine={engine}

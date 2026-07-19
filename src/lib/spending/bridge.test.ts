@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   applySpendRatioToBuckets,
+  engineVariableBudgetSuggestion,
   findSpendRoot,
+  isEngineBudgetDifferent,
   isSpendSuggestionDifferent,
+  manwonToWon,
   monthSpendingBreakdown,
   monthTotalSpendingManwon,
   spendRatioSuggestion,
@@ -132,5 +135,53 @@ describe("spending bridge", () => {
     expect(createdChildren).toBe(true);
     expect(findSpendRoot(buckets)?.ratioPct).toBe(sug.spendPct);
     expect(buckets).toHaveLength(3);
+  });
+
+  it("suggests variable budget from engine variable node", () => {
+    expect(manwonToWon(38)).toBe(380_000);
+    // income 300 · spend 40% = 120 · variable 40% of spend = 48만
+    const buckets: Bucket[] = [
+      {
+        id: "spend",
+        category: "spend",
+        name: "지출",
+        ratioPct: 40,
+        parentId: null,
+        expectedAnnualReturnPct: 0,
+        realizedYieldPct: 0,
+        isLocked: false,
+        position: 0,
+      },
+      {
+        id: "fixed",
+        category: "spend",
+        name: "고정지출",
+        ratioPct: 60,
+        parentId: "spend",
+        expectedAnnualReturnPct: 0,
+        realizedYieldPct: 0,
+        isLocked: false,
+        position: 0,
+      },
+      {
+        id: "var",
+        category: "spend",
+        name: "변동지출",
+        ratioPct: 40,
+        parentId: "spend",
+        expectedAnnualReturnPct: 0,
+        realizedYieldPct: 0,
+        isLocked: false,
+        position: 1,
+      },
+    ];
+    const s = engineVariableBudgetSuggestion(buckets, 300, 700_000);
+    expect(s).not.toBeNull();
+    expect(s!.source).toBe("variable_node");
+    expect(s!.spendManwon).toBe(120);
+    expect(s!.variableManwon).toBe(48);
+    expect(s!.suggestedWon).toBe(480_000);
+    expect(isEngineBudgetDifferent(800_000, s!)).toBe(true);
+    expect(isEngineBudgetDifferent(480_000, s!)).toBe(false);
   });
 });

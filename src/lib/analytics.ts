@@ -23,7 +23,9 @@ export type AnalyticsEvent =
   | "spend_logged"
   | "budget_pace_viewed"
   | "spend_applied_to_engine"
-  | "spend_ratio_suggestion_applied";
+  | "spend_ratio_suggestion_applied"
+  | "engine_budget_to_variable_applied"
+  | "budget_overpace_engine_link";
 
 type Props = Record<string, string | number | boolean | null | undefined>;
 
@@ -186,4 +188,6 @@ export const ANALYTICS_EVENTS: AnalyticsEvent[] = [
   "budget_pace_viewed",
   "spend_applied_to_engine",
   "spend_ratio_suggestion_applied",
+  "engine_budget_to_variable_applied",
+  "budget_overpace_engine_link",
 ];

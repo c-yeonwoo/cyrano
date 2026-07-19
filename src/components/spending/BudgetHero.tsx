@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { budgetPace } from "@/lib/spending/calc";
 import { formatWon } from "@/lib/spending/format";
 import { Button, NumberInput } from "@/components/ui";
+import { track } from "@/lib/analytics";
 import { clsx } from "@/lib/clsx";
 
 /** 변동지출 탭 상단 — n월 현재까지 실적 vs 예산 */
@@ -93,6 +95,20 @@ export function BudgetHero({
               ? `이 페이스면 월말 예산 약 ${pace.projectedPct.toFixed(0)}% 소진 예상이에요.`
               : `이 페이스면 월말 약 ${formatWon(pace.projectedWon)}.`}
           </p>
+          {pace.overPace && (
+            <Link
+              href="/engine"
+              onClick={() =>
+                track("budget_overpace_engine_link", {
+                  used_pct: Math.round(pace.usedPct),
+                  projected_pct: Math.round(pace.projectedPct),
+                })
+              }
+              className="mt-3 inline-flex items-center gap-1 rounded-lg border border-amber-200/40 bg-amber-400/15 px-2.5 py-1.5 text-xs font-semibold text-amber-100 hover:bg-amber-400/25"
+            >
+              지출 배분(자산 설계)을 줄여볼까요? →
+            </Link>
+          )}
         </div>
       </div>
     </section>

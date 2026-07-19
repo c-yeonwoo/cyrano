@@ -21,6 +21,7 @@ import { Icon } from "@/components/Icon";
 import { clsx } from "@/lib/clsx";
 import { track } from "@/lib/analytics";
 import { BudgetHero } from "./BudgetHero";
+import { EngineBudgetSuggest } from "./EngineBudgetSuggest";
 
 type ViewMode = "calendar" | "list";
 
@@ -85,6 +86,7 @@ export function VariableTab() {
           track("budget_pace_viewed", { source: "variable_tab" });
         }}
       />
+      <EngineBudgetSuggest />
 
       {/* 인라인 빠른 기록 바 */}
       <Card className="!p-3">
