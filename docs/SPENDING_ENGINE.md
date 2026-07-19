@@ -1,7 +1,7 @@
 # 지출관리 ↔ 자산 설계 엔진 연동
 
-> 상태: **Phase A UX 구현** (`ApplySpendingToEngine`) · 자동 sync 없음  
-> 단위 브리지: `src/lib/spending/bridge.ts`
+> 상태: **Phase A·B UX 구현** · 자동 sync 없음  
+> 단위 브리지: `src/lib/spending/bridge.ts` · UI: `ApplySpendingToEngine` / `SpendRatioSuggestion`
 
 ## 1. 역할 분리
 
@@ -32,10 +32,11 @@
 3. 값 = 당월 변동 + **고정 전체**(결제일 무관) · 만원 버림. 요약「오늘까지」와 의도적으로 다름.
 4. 이미 동일·실측 0원이면 버튼 비활성. analytics: `spend_applied_to_engine`.
 
-### Phase B — 배분 트리 제안
-1. `spendRatioSuggestion`으로 소득 대비 `g_spend` % 제안.
-2. 고정/변동 비중으로 `g_spend` 하위 자식 ratio 초안.
-3. 엔진 캔버스에 **「실측 기준 제안」** 배지 → 수락 시 노드 ratio만 갱신 (드래그 위치 유지).
+### Phase B — 배분 트리 제안 ✅
+1. `toSpendRatioPctSuggestion` / `applySpendRatioToBuckets` — 지출 루트·고정/변동 `ratioPct`만 패치.
+2. 엔진: `SpendRatioSuggestionBar` + 지출 노드 「실측」 배지 + Inspector CTA.
+3. 수락 시 canvas 위치 유지 · 없으면 지출 트리 생성 · 진단 `monthlySpending`도 동일 실측으로 맞춤.
+4. analytics: `spend_ratio_suggestion_applied`.
 
 ### Phase C — 양방향·루프 (이후)
 - 엔진에서 지출 한도를 바꾸면 변동 **예산** 제안(고정 제외한 잔여).
@@ -57,5 +58,5 @@
 ## 6. 열린 결정
 
 - [x] Phase A 트리거: 요약 카드 + 진단 인라인 (배너 아님)
-- [ ] Phase B: `g_spend` ratio까지
+- [x] Phase B: `g_spend` + 고정/변동 ratio
 - [ ] 과거 달 평균 vs 당월만

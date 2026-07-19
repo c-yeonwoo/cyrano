@@ -117,22 +117,30 @@ export function ApplySpendingToEngine({
                 {ctaLabel}
               </Button>
             </span>
-            {source === "summary" && (
+            <div className="flex flex-col items-stretch gap-1 text-center sm:items-end">
+              {source === "summary" && (
+                <Link
+                  href="/diagnosis"
+                  className="text-[11px] font-medium text-brand-700 hover:underline"
+                >
+                  진단에서 확인 →
+                </Link>
+              )}
+              {source === "diagnosis" && (
+                <Link
+                  href="/spending"
+                  className="text-[11px] font-medium text-brand-700 hover:underline"
+                >
+                  지출 기록 →
+                </Link>
+              )}
               <Link
-                href="/diagnosis"
-                className="text-center text-[11px] font-medium text-brand-700 hover:underline"
+                href="/engine"
+                className="text-[11px] font-medium text-spend-700 hover:underline"
               >
-                진단에서 확인 →
+                배분 비율 제안 →
               </Link>
-            )}
-            {source === "diagnosis" && (
-              <Link
-                href="/spending"
-                className="text-center text-[11px] font-medium text-brand-700 hover:underline"
-              >
-                지출 기록 →
-              </Link>
-            )}
+            </div>
           </div>
         </div>
       </Card>
@@ -160,7 +168,10 @@ export function ApplySpendingToEngine({
                 {formatWon(measured.fixedWon)}
               </li>
               <li>원 → 만원은 버림 ({formatWon(measured.totalWon)} → {next}만)</li>
-              <li>단계·저축률 계산에 바로 쓰입니다. 배분 트리는 건드리지 않아요.</li>
+              <li>
+                단계·저축률에 바로 쓰입니다. 배분 비율은 자산 설계의 「실측 기준 제안」에서
+                따로 맞출 수 있어요.
+              </li>
             </ul>
           </div>
         }

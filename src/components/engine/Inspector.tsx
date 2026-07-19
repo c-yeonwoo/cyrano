@@ -11,6 +11,7 @@ import {
 import { Field, NumberInput, Button, Badge } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { clampPct } from "@/lib/format";
+import { SpendRatioSuggestionInline } from "./SpendRatioSuggestion";
 
 export function Inspector({
   bucket,
@@ -63,6 +64,8 @@ export function Inspector({
           </div>
         </div>
       </div>
+
+      {bucket.category === "spend" && <SpendRatioSuggestionInline />}
 
       <Field label={`${ratioLabel} 비율`} hint="유저가 설정 · 형제 합 100% 권장">
         <input
