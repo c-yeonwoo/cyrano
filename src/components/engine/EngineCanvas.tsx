@@ -186,6 +186,7 @@ export function EngineCanvas({
   onSelectIds,
   onResetLayout,
   onRecommend,
+  onOpenDiagnosis,
   spendSuggestionPending = false,
   cashflowMonthly = 0,
 }: {
@@ -206,6 +207,8 @@ export function EngineCanvas({
   onSelectIds: (ids: string[], opts?: { additive?: boolean }) => void;
   onResetLayout: () => void;
   onRecommend: () => void;
+  /** 내 현황(진단) 모달 */
+  onOpenDiagnosis?: () => void;
   /** Phase B — 지출 루트에 실측 제안 배지 */
   spendSuggestionPending?: boolean;
   /** 자산→월수입 현금흐름 추정(만원/월) */
@@ -502,7 +505,14 @@ export function EngineCanvas({
           desc="수입 → 월수입 → 자산(복리·현금흐름) · 지출은 아래"
           action={
             <div className="flex flex-wrap justify-center gap-2">
-              <Button onClick={onRecommend}>추천 배분으로 시작</Button>
+              {onOpenDiagnosis && (
+                <Button onClick={onOpenDiagnosis}>
+                  <Icon name="diagnosis" size={14} /> 내 현황 입력
+                </Button>
+              )}
+              <Button variant={onOpenDiagnosis ? "outline" : "primary"} onClick={onRecommend}>
+                추천 배분으로 시작
+              </Button>
               <Button variant="outline" onClick={() => setQuickAddParent(null)}>
                 묶음부터 추가
               </Button>

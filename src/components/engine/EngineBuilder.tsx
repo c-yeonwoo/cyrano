@@ -42,6 +42,7 @@ import {
   useSpendSuggestionPending,
 } from "./SpendRatioSuggestion";
 import { PushBudgetToVariableBar } from "./PushBudgetToVariable";
+import { DiagnosisModal } from "./DiagnosisModal";
 
 export function EngineBuilder() {
   const snapshot = useProfile((s) => s.profile.snapshot) ?? DEFAULT_SNAPSHOT;
@@ -96,6 +97,7 @@ export function EngineBuilder() {
   const [sens, setSens] = useState<SensitivityKey>("base");
   const [sharing, setSharing] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(true);
+  const [diagnosisOpen, setDiagnosisOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{
     id: string;
     name: string;
@@ -282,7 +284,15 @@ export function EngineBuilder() {
     <div className="space-y-5">
       {/* 상단바 */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-sm text-ink-600">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-ink-600">
+          <Button
+            variant="outline"
+            className="!px-3 !py-1.5 text-sm"
+            onClick={() => setDiagnosisOpen(true)}
+          >
+            <Icon name="diagnosis" size={15} />
+            내 현황
+          </Button>
           {vision && (
             <span className="flex items-center gap-1.5 font-semibold">
               <Icon name="target" size={16} className="text-brand-600" />
@@ -294,6 +304,8 @@ export function EngineBuilder() {
           수입 배분 {Math.round(sum)}% {sumOk ? "✓" : "(루트 합 100%)"}
         </Badge>
       </div>
+
+      <DiagnosisModal open={diagnosisOpen} onClose={() => setDiagnosisOpen(false)} />
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
         {/* 항목 추가 */}
@@ -349,6 +361,7 @@ export function EngineBuilder() {
             onRequestDelete={requestDelete}
             spendSuggestionPending={spendSuggestionPending}
             cashflowMonthly={cashflowMonthly}
+            onOpenDiagnosis={() => setDiagnosisOpen(true)}
             onMoveNodes={(moves) => {
               const byId = new Map(moves.map((m) => [m.id, m]));
               let nextEngine = { ...engine };
