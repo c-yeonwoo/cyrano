@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useProfile, MAX_SCENARIOS_LIMIT } from "@/lib/store/useProfile";
 import { suggestEngineFromSnapshot, DEFAULT_SNAPSHOT } from "@/lib/store/defaults";
 import {
@@ -14,8 +14,10 @@ import {
 import type { Bucket } from "@/lib/types";
 import { formatKRW } from "@/lib/format";
 import { renderShareCard, shareOrDownload } from "@/lib/shareCard";
+import { track, trackAhaAllocatedOnce } from "@/lib/analytics";
 import { Card, Button, Badge, TextInput, AssumptionNote, StatCard } from "@/components/ui";
 import { Icon } from "@/components/Icon";
+import { LeadCta } from "@/components/LeadCta";
 import { AssetChart } from "@/components/AssetChart";
 import { BottomSheet } from "@/components/BottomSheet";
 import { Palette } from "./Palette";
@@ -45,6 +47,12 @@ export function EngineBuilder() {
   const monthlyIncome = snapshot.incomeSources.reduce((s, i) => s + i.monthly, 0);
   const sum = ratioSum(buckets);
   const sumOk = Math.round(sum) === 100;
+
+  useEffect(() => {
+    if (sumOk && buckets.length > 0) {
+      trackAhaAllocatedOnce({ bucket_count: buckets.length });
+    }
+  }, [sumOk, buckets.length]);
 
   const horizon = Math.max(vision?.targetYears ?? 15, 30);
 
@@ -113,6 +121,10 @@ export function EngineBuilder() {
         achievementPct: projection.achievementPct,
       });
       await shareOrDownload(blob);
+      track("share_card_shared", {
+        target_years: targetYears,
+        achievement_pct: Math.round(projection.achievementPct),
+      });
     } catch (e) {
       console.error("[share]", e);
     } finally {
@@ -177,7 +189,10 @@ export function EngineBuilder() {
             selectedId={selectedId}
             onSelect={setSelectedId}
             onAdd={addBucket}
-            onRecommend={() => setEngine(suggestEngineFromSnapshot(snapshot))}
+            onRecommend={() => {
+              setEngine(suggestEngineFromSnapshot(snapshot));
+              track("engine_recommend_applied", { source: "canvas_empty" });
+            }}
           />
 
           {/* 결과 패널 */}
@@ -198,7 +213,10 @@ export function EngineBuilder() {
               {(["conservative", "base", "aggressive"] as SensitivityKey[]).map((k) => (
                 <button
                   key={k}
-                  onClick={() => setSens(k)}
+                  onClick={() => {
+                    setSens(k);
+                    track("sensitivity_changed", { sensitivity: k });
+                  }}
                   className={
                     "rounded-md px-2.5 py-1 font-semibold transition-colors " +
                     (sens === k ? "bg-gold-400 text-brand-900" : "text-ink-500 hover:bg-ink-100")
@@ -264,6 +282,8 @@ export function EngineBuilder() {
           </div>
         </div>
 
+        {sumOk && <LeadCta placement="engine_result" className="mt-4" />}
+
         {/* 시나리오 */}
         <div className="mt-4 border-t border-ink-100 pt-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -275,6 +295,7 @@ export function EngineBuilder() {
               variant="outline"
               onClick={() => {
                 saveScenario(scenarioName);
+                track("scenario_saved", { scenario_count: scenarios.length + 1 });
                 setScenarioName("");
               }}
               disabled={buckets.length === 0 || scenarios.length >= MAX_SCENARIOS_LIMIT}

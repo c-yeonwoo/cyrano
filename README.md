@@ -11,6 +11,7 @@
 
 ## 문서
 - [`docs/HANDOFF.md`](docs/HANDOFF.md) — **결과 위주 핸드오프**: 뭐가 만들어졌는지·왜 이렇게 했는지·다음 세션 킥오프 프롬프트
+- [`docs/BUSINESS_MODEL.md`](docs/BUSINESS_MODEL.md) — BM 결정 (리드젠 1차 · AI 코치 2차)
 - [`docs/PRODUCT_REVIEW.md`](docs/PRODUCT_REVIEW.md) — Product·Design·Tech·UXR·AI 5개 관점 종합 리뷰 + ROI 우선순위
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — 단계별 로드맵 (v1.0 GA → v2 AI 코치)
 - [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) — 시라노 브랜드·토큰·아이콘 시스템

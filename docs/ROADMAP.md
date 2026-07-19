@@ -14,8 +14,11 @@
 ✅ **결과 공유 이미지** (획득 루프) — PR #5
 ✅ **모바일 엔진 인스펙터 바텀시트** — PR #6
 ✅ **실천·트래킹 최소 (리텐션 루프)** — PR #7 (주간 점검 스트릭 + 다음 걸음 실천)
+✅ **Quiet Ledger 브랜드** — Champagne bronze · Pretendard · 루프형 IA
+✅ **핵심 지표 계측** — PostHog 선택 연결 · 온보딩/아하/리텐션/리드 CTA 이벤트
+✅ **BM 확정** — 리드젠 1차 / AI 코치 프리미엄 2차 (`docs/BUSINESS_MODEL.md`) · 엔진 결과 LeadCta
 
-**남은 v1.0 GA 항목:** 계측(analytics · provider 필요) · 컴플라이언스 카피 최종 · 온보딩 순서 개선.
+**남은 v1.0 GA 항목:** Supabase 실프로젝트 E2E · Railway 배포 · 컴플라이언스 페이지 · 온보딩 순서 개선.
 **아직 없음:** AI 코치(Anthropic API 키 필요) · 자동연동 · 커뮤니티.
 
 ---
