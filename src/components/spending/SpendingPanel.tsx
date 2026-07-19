@@ -10,8 +10,8 @@ import { FixedTab } from "./FixedTab";
 
 const TABS = [
   { key: "summary", label: "요약" },
-  { key: "variable", label: "변동지출" },
   { key: "fixed", label: "고정지출" },
+  { key: "variable", label: "변동지출" },
 ] as const;
 
 type TabKey = (typeof TABS)[number]["key"];

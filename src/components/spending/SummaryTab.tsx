@@ -65,32 +65,32 @@ export function SummaryTab() {
           )}
         </div>
         <p className="mt-1 text-xs text-ink-500">
-          변동 {formatWon(variableSpent)} + 결제된 고정 {formatWon(fixedPaid)}
+          결제된 고정 {formatWon(fixedPaid)} + 변동 {formatWon(variableSpent)}
         </p>
         <div className="mt-4 flex h-2.5 overflow-hidden rounded-full bg-ink-100">
           {totalSpend > 0 ? (
             <>
               <div
-                className="bg-gold-400 transition-all"
-                style={{ width: `${variableShare}%` }}
-                title="변동"
-              />
-              <div
                 className="bg-brand-400 transition-all"
                 style={{ width: `${fixedShare}%` }}
                 title="결제된 고정"
+              />
+              <div
+                className="bg-gold-400 transition-all"
+                style={{ width: `${variableShare}%` }}
+                title="변동"
               />
             </>
           ) : null}
         </div>
         <div className="mt-2 flex flex-wrap gap-4 text-xs text-ink-500">
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-gold-400" />
-            변동 {variableShare.toFixed(0)}%
-          </span>
-          <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-brand-400" />
             결제된 고정 {fixedShare.toFixed(0)}%
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-gold-400" />
+            변동 {variableShare.toFixed(0)}%
           </span>
         </div>
       </section>
@@ -122,21 +122,21 @@ export function SummaryTab() {
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
+          <div className="mb-3 text-sm font-bold text-ink-800">카테고리별 고정지출</div>
+          <DonutChart
+            segments={fixedBreakdown}
+            totalWon={fixedPaid}
+            centerLabel="고정"
+            emptyLabel="아직 결제된 고정이 없어요"
+          />
+        </Card>
+        <Card>
           <div className="mb-3 text-sm font-bold text-ink-800">카테고리별 변동지출</div>
           <DonutChart
             segments={variableBreakdown}
             totalWon={variableSpent}
             centerLabel="변동"
             emptyLabel="이번 달 변동 기록이 없어요"
-          />
-        </Card>
-        <Card>
-          <div className="mb-3 text-sm font-bold text-ink-800">카테고리별 결제된 고정</div>
-          <DonutChart
-            segments={fixedBreakdown}
-            totalWon={fixedPaid}
-            centerLabel="결제"
-            emptyLabel="아직 결제된 고정이 없어요"
           />
         </Card>
       </div>
