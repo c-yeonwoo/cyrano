@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.env
+.env*.local
+*.md
+docs
+agent-transcripts
+.cursor
+coverage
+npm-debug.log*
+Dockerfile
+.dockerignore

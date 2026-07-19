@@ -15,6 +15,7 @@
 - [`docs/PRODUCT_REVIEW.md`](docs/PRODUCT_REVIEW.md) — Product·Design·Tech·UXR·AI 5개 관점 종합 리뷰 + ROI 우선순위
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — 단계별 로드맵 (v1.0 GA → v2 AI 코치)
 - [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md) — 시라노 브랜드·토큰·아이콘 시스템
+- [`docs/DEPLOY.md`](docs/DEPLOY.md) — Supabase E2E · Railway 배포
 
 ---
 
@@ -166,17 +167,24 @@ supabase/migrations/  # 0001_init.sql — 정규화 스키마 + RLS
 
 ---
 
-## 배포 (Railway)
+## 배포 (Railway) · Supabase 검증
 
-Railway가 Next.js를 자동 감지합니다.
-- Build: `npm run build`
-- Start: `npm run start` (`PORT` 환경변수 사용)
-- Supabase를 쓸 경우 위 두 환경변수를 Railway 프로젝트에 등록.
+자세한 절차: [`docs/DEPLOY.md`](docs/DEPLOY.md)
+
+```bash
+npm run supabase:start       # 로컬 Supabase + 마이그레이션
+npm run verify:supabase      # 스키마·RLS·동기화 경로 E2E
+docker build -t cyrano . && docker run --rm -p 3000:3000 cyrano
+```
+
+- Dockerfile + `output: "standalone"` + `/api/health`
+- Railway: GitHub 연결 또는 `railway up` · Variables에 Supabase/PostHog/LEAD_URL
 
 ---
 
 ## 컴플라이언스 / 가드레일
 
+- 페이지: [`/legal/disclaimer`](/legal/disclaimer) · [`/legal/terms`](/legal/terms) · [`/legal/privacy`](/legal/privacy)
 - 수익률·미래 자산은 **항상 '예시·가정' 라벨**, 수익 보장 뉘앙스 금지.
 - 개별 종목/매물 추천 ❌ — '배분 구조'만 (유사투자자문 회피).
 - 세법 딥다이브 ❌ (절세계좌 '개념'까지).

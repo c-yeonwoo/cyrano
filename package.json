@@ -5,11 +5,15 @@
   "description": "재테크 엔진 인생설계 플랫폼 MVP",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start -p ${PORT:-3000}",
+    "build": "next build && node scripts/copy-standalone.mjs",
+    "start": "HOSTNAME=0.0.0.0 node .next/standalone/server.js",
+    "start:next": "next start -p ${PORT:-3000}",
     "lint": "next lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "verify:supabase": "node scripts/verify-supabase.mjs",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.53.0",
