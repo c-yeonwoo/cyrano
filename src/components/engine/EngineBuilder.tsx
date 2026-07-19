@@ -14,7 +14,11 @@ import {
   type SensitivityKey,
 } from "@/lib/engine";
 import type { Bucket } from "@/lib/types";
-import { normalizeIncomeSources, sumMonthlyIncome } from "@/lib/income";
+import {
+  ASSET_CASHFLOW_SOURCE_ID,
+  normalizeIncomeSources,
+  sumMonthlyIncome,
+} from "@/lib/income";
 import { GROUP_PRESETS, bucketFromPreset } from "@/lib/catalog";
 import { formatKRW } from "@/lib/format";
 import { renderShareCard, shareOrDownload } from "@/lib/shareCard";
@@ -199,6 +203,7 @@ export function EngineBuilder() {
     selectedId && !selected && selectedId !== "__income__" && selectedId !== "__pool__"
       ? incomeSources.find((s) => s.id === selectedId) ?? null
       : null;
+  /** 자본소득 합 — y1 패시브에서 빼면 자산 실현분(월) 추정 */
   const capitalMonthly = incomeSources
     .filter((s) => s.type === "capital")
     .reduce((a, s) => a + s.monthly, 0);
@@ -207,6 +212,32 @@ export function EngineBuilder() {
     if (!y1) return 0;
     return Math.max(0, y1.monthlyPassiveIncome - capitalMonthly);
   }, [projection.curve, capitalMonthly]);
+  const cashflowLinked = incomeSources.some((s) => s.id === ASSET_CASHFLOW_SOURCE_ID);
+  const linkCashflowToIncome = () => {
+    const amt = Math.round(cashflowMonthly);
+    if (amt <= 0) return;
+    if (cashflowLinked) {
+      patchSources(
+        incomeSources.map((s) =>
+          s.id === ASSET_CASHFLOW_SOURCE_ID
+            ? { ...s, monthly: amt, name: s.name || "자산 현금흐름" }
+            : s,
+        ),
+      );
+      return;
+    }
+    const maxPos = incomeSources.reduce((m, s) => Math.max(m, s.position ?? 0), -1);
+    patchSources([
+      ...incomeSources,
+      {
+        id: ASSET_CASHFLOW_SOURCE_ID,
+        type: "capital" as const,
+        monthly: amt,
+        name: "자산 현금흐름",
+        position: maxPos + 1,
+      },
+    ]);
+  };
   const targetYears = vision?.targetYears ?? 15;
   const atYear = (curve: typeof projection.curve) =>
     curve.find((p) => p.year === targetYears) ?? curve[curve.length - 1];
@@ -574,7 +605,11 @@ export function EngineBuilder() {
                 }}
               />
             ) : selectedId === "__pool__" ? (
-              <PoolHubInspector cashflowMonthly={cashflowMonthly} />
+              <PoolHubInspector
+                cashflowMonthly={cashflowMonthly}
+                cashflowLinked={cashflowLinked}
+                onLinkCashflow={linkCashflowToIncome}
+              />
             ) : selectedSource ? (
               <SourceInspector
                 source={selectedSource}
@@ -622,7 +657,7 @@ export function EngineBuilder() {
                 <Icon name="layers" size={28} className="text-ink-300" />
                 <p className="mt-3 text-sm font-semibold text-ink-600">노드를 선택하세요</p>
                 <p className="mt-1 text-xs leading-relaxed text-ink-400">
-                  월수입 · 자산 · 성장/안전/지출 · Shift+클릭으로 여러 개
+                  월수입 · 자산 · 투자/저축/지출
                 </p>
               </div>
             )}
@@ -645,7 +680,11 @@ export function EngineBuilder() {
           />
         )}
         {selectedId === "__pool__" && (
-          <PoolHubInspector cashflowMonthly={cashflowMonthly} />
+          <PoolHubInspector
+            cashflowMonthly={cashflowMonthly}
+            cashflowLinked={cashflowLinked}
+            onLinkCashflow={linkCashflowToIncome}
+          />
         )}
         {selectedSource && (
           <SourceInspector

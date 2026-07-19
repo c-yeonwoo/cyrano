@@ -3,7 +3,7 @@ import type { IconName } from "@/components/Icon";
 
 /**
  * 항목 추가 프리셋.
- * - kind: group = 월수입 바로 아래 묶음(성장·안전 = 자산 / 지출)
+ * - kind: group = 월수입 바로 아래 묶음(투자·저축 = 자산 / 지출)
  * - kind: item = 선택 중인 묶음 아래
  */
 export interface BucketPreset {
@@ -24,22 +24,22 @@ export const GROUP_PRESETS: BucketPreset[] = [
   {
     key: "g_invest",
     category: "invest",
-    name: "성장",
+    name: "투자",
     icon: "trending-up",
     kind: "group",
     defaultReturnPct: 0,
     defaultRealizedPct: 0,
-    desc: "자산 · 복리 + 배당·임대 등 현금흐름",
+    desc: "주식·펀드·연금 등",
   },
   {
     key: "g_save",
     category: "save",
-    name: "안전",
+    name: "저축",
     icon: "shield",
     kind: "group",
     defaultReturnPct: 0,
     defaultRealizedPct: 0,
-    desc: "자산 · 안에서만 붙는 이자",
+    desc: "예적금·비상금",
   },
   {
     key: "g_spend",

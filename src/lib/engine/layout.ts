@@ -1,5 +1,9 @@
 import type { Bucket, EngineConfig, IncomeSource } from "../types";
-import { normalizeIncomeSources, sumMonthlyIncome } from "../income";
+import {
+  ASSET_CASHFLOW_SOURCE_ID,
+  normalizeIncomeSources,
+  sumMonthlyIncome,
+} from "../income";
 import { childrenOf, roots } from "./tree";
 
 export const NODE_W = 168;
@@ -361,17 +365,21 @@ export function layoutEngineGraph(input: LayoutInput | Bucket[]): {
       });
     });
 
-    // 실현 수익 재유입 — 보조 점선
+    // 실현 수익 재유입 — 수입원(자산 현금흐름)이 있으면 그쪽으로, 없으면 월수입으로
+    const linkedCashflow = sourceNodes.find(
+      (n) => n.id === ASSET_CASHFLOW_SOURCE_ID || n.incomeSource?.id === ASSET_CASHFLOW_SOURCE_ID,
+    );
+    const reinvestTo = linkedCashflow ?? income;
     edges.push({
-      id: safeEdgeId(pool.id, income.id),
+      id: safeEdgeId(pool.id, reinvestTo.id),
       fromId: pool.id,
-      toId: income.id,
+      toId: reinvestTo.id,
       tone: "dashed",
       ratio: 0,
       x1: pool.x + pool.w / 2,
       y1: pool.y,
-      x2: income.x + income.w / 2,
-      y2: income.y,
+      x2: reinvestTo.x + reinvestTo.w / 2,
+      y2: linkedCashflow ? reinvestTo.y + reinvestTo.h / 2 : reinvestTo.y,
     });
   }
 

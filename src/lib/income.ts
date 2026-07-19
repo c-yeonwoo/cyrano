@@ -1,5 +1,8 @@
 import { INCOME_SOURCE_META, type IncomeSource, type IncomeSourceType } from "./types";
 
+/** 자산 실현 현금흐름 → 수입원으로 연결할 때 쓰는 고정 id */
+export const ASSET_CASHFLOW_SOURCE_ID = "inc_asset_cashflow";
+
 let inc = 0;
 export function newIncomeId(): string {
   inc += 1;

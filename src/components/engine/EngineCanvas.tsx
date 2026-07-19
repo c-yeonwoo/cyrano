@@ -24,7 +24,12 @@ import {
   layoutEngineGraph,
   type GraphNode,
 } from "@/lib/engine/layout";
-import { incomeSourceLabel, normalizeIncomeSources, sumMonthlyIncome } from "@/lib/income";
+import {
+  ASSET_CASHFLOW_SOURCE_ID,
+  incomeSourceLabel,
+  normalizeIncomeSources,
+  sumMonthlyIncome,
+} from "@/lib/income";
 import { Button, EmptyState, TextInput } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 
@@ -161,10 +166,10 @@ function startDrag(
   setDrag(next);
 }
 
-/** 레거시 이름 → 자산 용어 */
+/** 레거시 성장/안전 → 투자/저축 */
 function displayBucketName(name: string): string {
-  if (name === "투자") return "성장";
-  if (name === "저축") return "안전";
+  if (name === "성장") return "투자";
+  if (name === "안전") return "저축";
   return name;
 }
 
@@ -214,6 +219,9 @@ export function EngineCanvas({
   const [quickAddParent, setQuickAddParent] = useState<string | null | undefined>(undefined);
   const [drag, setDrag] = useState<DragState | null>(null);
   const [marquee, setMarquee] = useState<MarqueeState | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const zoomRef = useRef(1);
+  zoomRef.current = zoom;
 
   const sources = useMemo(() => normalizeIncomeSources(incomeSources), [incomeSources]);
   const monthlyIncome = sumMonthlyIncome(sources);
@@ -224,6 +232,20 @@ export function EngineCanvas({
     const on = () => setAnimate(!mq.matches);
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);
+  }, []);
+
+  useEffect(() => {
+    const el = svgRef.current?.parentElement;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const factor = e.deltaY > 0 ? 0.92 : 1.08;
+      const next = Math.min(2.2, Math.max(0.45, zoomRef.current * factor));
+      zoomRef.current = next;
+      setZoom(next);
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
   const clientToSvg = (clientX: number, clientY: number) => {
@@ -641,16 +663,31 @@ export function EngineCanvas({
               자동 정렬
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => {
+              zoomRef.current = 1;
+              setZoom(1);
+            }}
+            className="tnum rounded-md px-1.5 py-0.5 font-semibold text-ink-500 hover:bg-ink-100 hover:text-ink-700"
+            title="줌 초기화"
+          >
+            {Math.round(zoom * 100)}%
+          </button>
           <span className="tnum font-semibold text-ink-500">월수입 {monthlyIncome}만</span>
         </div>
       </div>
 
-      <div className="overflow-x-auto p-2">
+      <div className="overflow-auto p-2">
         <svg
           ref={svgRef}
           viewBox={`0 0 ${width} ${height}`}
-          className="w-full min-w-[780px] touch-none"
-          style={{ height: Math.min(560, Math.max(380, height * 0.52)), minHeight: 380 }}
+          className="touch-none"
+          style={{
+            width: Math.max(780, width) * zoom,
+            height: Math.min(560, Math.max(380, height * 0.52)) * zoom,
+            minHeight: 380 * zoom,
+          }}
           preserveAspectRatio="xMidYMid meet"
         >
           <text
@@ -661,7 +698,7 @@ export function EngineCanvas({
             fontWeight="600"
             fill="var(--color-ink-400)"
           >
-            수입 → 월수입 → 자산(복리) · 현금흐름은 점선으로 되돌아옴 · 지출은 아래
+            수입 → 월수입 → 투자·저축 → 자산 · 지출은 아래
           </text>
 
           <rect
@@ -676,7 +713,9 @@ export function EngineCanvas({
           {/* 선(시각·히트) → 노드 → 핸들. 빈 곳은 마퀴 선택 */}
           {edges.map((raw, i) => {
             const e = shiftedEdge(raw);
-            const reinvest = e.fromId === "__pool__" && e.toId === "__income__";
+            const reinvest =
+              e.fromId === "__pool__" &&
+              (e.toId === "__income__" || e.toId === ASSET_CASHFLOW_SOURCE_ID);
             const ctl = edgeControlOf(e, reinvest);
             const d = edgePath(e, reinvest, ctl);
             const handle = ctl ?? defaultEdgeControl(e, reinvest);
@@ -783,6 +822,7 @@ export function EngineCanvas({
             if (n.kind === "source") {
               const src = n.incomeSource!;
               const selected = selectedIds.includes(n.id);
+              const fromAssets = src.id === ASSET_CASHFLOW_SOURCE_ID;
               const dragging =
                 drag?.id === n.id || (drag != null && drag.group.some((g) => g.id === n.id));
               const p = posOf(n);
@@ -792,14 +832,26 @@ export function EngineCanvas({
                     role="button"
                     tabIndex={0}
                     onPointerDown={(e) => beginNodeDrag(e, n.id, n)}
-                    className={`flex h-full w-full cursor-grab select-none flex-col justify-center rounded-lg border border-brand-200 bg-white px-2 text-left ${
+                    className={`flex h-full w-full cursor-grab select-none flex-col justify-center rounded-lg border px-2 text-left ${
+                      fromAssets
+                        ? "border-gold-400 bg-gold-50"
+                        : "border-brand-200 bg-white"
+                    } ${
                       selected ? "ring-2 ring-brand-500" : "hover:shadow-sm"
                     } ${dragging ? "cursor-grabbing opacity-90" : ""}`}
                   >
-                    <div className="truncate text-[11px] font-bold text-brand-800">
+                    <div
+                      className={`truncate text-[11px] font-bold ${
+                        fromAssets ? "text-gold-700" : "text-brand-800"
+                      }`}
+                    >
                       {incomeSourceLabel(src)}
                     </div>
-                    <div className="tnum text-sm font-extrabold text-brand-700">
+                    <div
+                      className={`tnum text-sm font-extrabold ${
+                        fromAssets ? "text-gold-800" : "text-brand-700"
+                      }`}
+                    >
                       월 {src.monthly}만
                     </div>
                   </div>
@@ -861,16 +913,11 @@ export function EngineCanvas({
                     } ${dragging ? "cursor-grabbing opacity-90" : ""}`}
                   >
                     <div className="text-sm font-bold">자산</div>
-                    <div className="mt-0.5 text-[10px] text-white/70">안에서 복리</div>
                     {cashflowMonthly > 0 ? (
-                      <div className="tnum mt-1.5 text-[11px] font-semibold text-gold-300">
+                      <div className="tnum mt-1 text-[11px] font-semibold text-gold-300">
                         흐름 월 {Math.round(cashflowMonthly)}만
                       </div>
-                    ) : (
-                      <div className="mt-1.5 text-[9px] leading-snug text-white/50">
-                        배당·임대 → 월수입
-                      </div>
-                    )}
+                    ) : null}
                   </div>
                 </foreignObject>
               );
@@ -881,7 +928,9 @@ export function EngineCanvas({
 
           {edges.map((raw) => {
             const e = shiftedEdge(raw);
-            const reinvest = e.fromId === "__pool__" && e.toId === "__income__";
+            const reinvest =
+              e.fromId === "__pool__" &&
+              (e.toId === "__income__" || e.toId === ASSET_CASHFLOW_SOURCE_ID);
             const ctl = edgeControlOf(e, reinvest);
             const handle = ctl ?? defaultEdgeControl(e, reinvest);
             const edgeActive = drag?.mode === "edge" && drag.id === e.id;
@@ -922,7 +971,7 @@ export function EngineCanvas({
       </div>
 
       <p className="border-t border-ink-100 px-3 py-2 text-[11px] text-ink-400">
-        빈 곳 드래그=박스 선택 · Shift+클릭 추가 · 선 핸들은 곡선만 · 자동 정렬로 선도 초기화
+        휠 줌 · 빈 곳 드래그=박스 선택 · 선 핸들=곡선 · 자산→수입원 연결 가능
       </p>
 
       {quickAddParent !== undefined && (

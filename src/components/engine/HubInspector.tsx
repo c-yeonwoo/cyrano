@@ -14,12 +14,7 @@ export function IncomeHubInspector({
 }) {
   return (
     <div className="space-y-4">
-      <div>
-        <div className="text-sm font-bold text-ink-800">월수입</div>
-        <p className="mt-1 text-xs text-ink-400">
-          왼쪽 수입원이 여기로 모이고, 오른쪽 자산·지출로 흘러갑니다.
-        </p>
-      </div>
+      <div className="text-sm font-bold text-ink-800">월수입</div>
       <div className="rounded-xl border border-brand-100 bg-brand-50 px-3 py-3 text-center">
         <div className="tnum text-xl font-extrabold text-brand-800">{monthlyIncome}만</div>
         <div className="mt-0.5 text-[11px] text-brand-500">이번 달 기준</div>
@@ -33,28 +28,39 @@ export function IncomeHubInspector({
 
 export function PoolHubInspector({
   cashflowMonthly = 0,
+  cashflowLinked = false,
+  onLinkCashflow,
 }: {
   /** 자산→월수입 재유입 추정(만원/월) */
   cashflowMonthly?: number;
+  /** 이미 수입원 노드로 연결됨 */
+  cashflowLinked?: boolean;
+  onLinkCashflow?: () => void;
 }) {
+  const amt = Math.round(cashflowMonthly);
   return (
     <div className="space-y-3">
-      <div>
-        <div className="text-sm font-bold text-ink-800">자산</div>
-        <p className="mt-1 text-xs leading-relaxed text-ink-400">
-          성장·안전 묶음이 모이는 곳입니다. <strong className="font-semibold text-ink-600">복리는 여기서만</strong>{" "}
-          일어나고, 배당·임대 같은 현금흐름은 점선으로 월수입에 다시 들어옵니다.
-        </p>
-      </div>
-      {cashflowMonthly > 0 && (
+      <div className="text-sm font-bold text-ink-800">자산</div>
+      {amt > 0 ? (
         <div className="rounded-xl border border-gold-200 bg-gold-50 px-3 py-2 text-center">
           <div className="text-[11px] font-semibold text-gold-600">현금흐름(추정)</div>
-          <div className="tnum text-lg font-extrabold text-ink-800">월 {Math.round(cashflowMonthly)}만</div>
+          <div className="tnum text-lg font-extrabold text-ink-800">월 {amt}만</div>
+        </div>
+      ) : (
+        <div className="rounded-xl border border-ink-100 bg-ink-50 px-3 py-2 text-center text-xs text-ink-400">
+          실현 수익이 생기면 여기에 표시돼요
         </div>
       )}
-      <div className="rounded-xl border border-ink-100 bg-ink-50 px-3 py-2 text-xs text-ink-500">
-        지출은 자산에 들어가지 않고 아래 밴드로 빠져나갑니다.
-      </div>
+      {onLinkCashflow && (
+        <Button
+          className="w-full"
+          disabled={amt <= 0}
+          onClick={onLinkCashflow}
+        >
+          <Icon name="plus" size={14} />
+          {cashflowLinked ? "수입원 금액 갱신" : "수입원으로 연결"}
+        </Button>
+      )}
     </div>
   );
 }
@@ -72,10 +78,7 @@ export function SourceInspector({
 }) {
   return (
     <div className="space-y-4">
-      <div>
-        <div className="text-sm font-bold text-ink-800">{incomeSourceLabel(source)}</div>
-        <p className="mt-0.5 text-xs text-ink-400">{INCOME_SOURCE_META[source.type].hint}</p>
-      </div>
+      <div className="text-sm font-bold text-ink-800">{incomeSourceLabel(source)}</div>
       <Field label="표시 이름">
         <TextInput
           value={source.name ?? ""}

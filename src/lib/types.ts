@@ -85,11 +85,9 @@ export const CATEGORY_META: Record<
   BucketCategory,
   { label: string; accent: string; note: string }
 > = {
-  /** 자산 안 — 복리·실현수익(배당 등) */
-  invest: { label: "성장", accent: "amber", note: "자산 안에서 불리는 부분" },
-  /** 자산 안 — 잔액 복리(안전) */
-  save: { label: "안전", accent: "emerald", note: "자산 안에서 모아 두는 부분" },
-  spend: { label: "지출", accent: "sky", note: "자산 밖으로 나가는 돈" },
+  invest: { label: "투자", accent: "amber", note: "" },
+  save: { label: "저축", accent: "emerald", note: "" },
+  spend: { label: "지출", accent: "sky", note: "" },
 };
 
 export interface Bucket {

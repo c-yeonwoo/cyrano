@@ -125,7 +125,7 @@ export function SpendRatioSuggestionBar() {
               </span>
             </p>
             <p className="mt-1 text-[11px] text-ink-400">
-              지출 노드 비율만 바꿉니다. 위치·성장·안전은 그대로예요.
+              지출 노드 비율만 바꿉니다. 위치·투자·저축은 그대로예요.
             </p>
           </div>
           <Button onClick={() => setOpen(true)}>제안 적용</Button>

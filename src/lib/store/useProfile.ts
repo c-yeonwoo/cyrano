@@ -40,6 +40,12 @@ function ensureTracking(p: Profile): Tracking {
   return p.tracking ?? emptyTracking();
 }
 
+function migrateBucketLabels(name: string): string {
+  if (name === "성장") return "투자";
+  if (name === "안전") return "저축";
+  return name;
+}
+
 function migrateProfile(p: Profile): Profile {
   let next = p;
   if (!next.spending) next = { ...next, spending: seedSpending() };
@@ -49,6 +55,18 @@ function migrateProfile(p: Profile): Profile {
       snapshot: {
         ...next.snapshot,
         incomeSources: normalizeIncomeSources(next.snapshot.incomeSources),
+      },
+    };
+  }
+  if (next.engine?.buckets?.some((b) => b.name === "성장" || b.name === "안전")) {
+    next = {
+      ...next,
+      engine: {
+        ...next.engine,
+        buckets: next.engine.buckets.map((b) => ({
+          ...b,
+          name: migrateBucketLabels(b.name),
+        })),
       },
     };
   }

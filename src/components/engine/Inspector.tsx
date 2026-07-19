@@ -73,7 +73,7 @@ export function Inspector({
         </div>
       )}
 
-      <Field label={`${ratioLabel} 비율`} hint="유저가 설정 · 형제 합 100% 권장">
+      <Field label={`${ratioLabel} 비율`}>
         <input
           type="range"
           min={0}
@@ -99,7 +99,7 @@ export function Inspector({
       </div>
 
       {leaf && bucket.category !== "spend" && (
-        <Field label="기대 연 수익률 (가정)">
+        <Field label="기대 연 수익률">
           <NumberInput
             value={bucket.expectedAnnualReturnPct}
             onChange={(n) => onChange({ expectedAnnualReturnPct: n })}
@@ -109,7 +109,7 @@ export function Inspector({
       )}
 
       {leaf && isInvest && (
-        <Field label="실현 수익률 (배당·임대·이자)" hint="전체 수익 중 현금으로 실현되는 몫">
+        <Field label="실현 수익률">
           <NumberInput
             value={bucket.realizedYieldPct}
             onChange={(n) =>
