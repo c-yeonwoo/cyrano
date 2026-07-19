@@ -166,8 +166,41 @@ describe("adjustReturns (민감도)", () => {
 });
 
 describe("helpers", () => {
-  it("ratioSum", () => {
+  it("ratioSum — 루트만 합산 (자식 비율 제외)", () => {
     expect(ratioSum([bucket({ ratioPct: 54 }), bucket({ ratioPct: 46 })])).toBe(100);
+    expect(
+      ratioSum([
+        bucket({ id: "root", ratioPct: 100 }),
+        bucket({ id: "child", parentId: "root", ratioPct: 50 }),
+      ]),
+    ).toBe(100);
+  });
+
+  it("계층 배분도 프로젝션에 반영", () => {
+    const s = snapshot();
+    const invest = bucket({ id: "g", category: "invest", ratioPct: 100, expectedAnnualReturnPct: 0 });
+    const stock = bucket({
+      id: "s",
+      category: "invest",
+      parentId: "g",
+      ratioPct: 100,
+      expectedAnnualReturnPct: 8,
+      realizedYieldPct: 0,
+    });
+    const nested = projectEngine({ snapshot: s, buckets: [invest, stock], horizonYears: 10 });
+    const flat = projectEngine({
+      snapshot: s,
+      buckets: [
+        bucket({
+          category: "invest",
+          ratioPct: 100,
+          expectedAnnualReturnPct: 8,
+          realizedYieldPct: 0,
+        }),
+      ],
+      horizonYears: 10,
+    });
+    expect(nested.finalNetWorth).toBe(flat.finalNetWorth);
   });
   it("needsRealityNudge: 도달 못하면 true", () => {
     expect(needsRealityNudge(null, 15)).toBe(true);

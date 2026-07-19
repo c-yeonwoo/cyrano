@@ -17,6 +17,7 @@ import type { SpendCategory, SpendFavorite } from "../spending/catalog";
 import { emptyProfile, ensureSpending } from "./defaults";
 import { seedSpending } from "../spending/seed";
 import { hasCheckedInThisWeek } from "../tracking";
+import { collectDescendantIds } from "../engine/tree";
 
 const MAX_SCENARIOS = 5;
 
@@ -117,14 +118,17 @@ export const useProfile = create<ProfileState>()(
         })),
 
       removeBucket: (id) =>
-        set((st) => ({
-          profile: touch({
-            ...st.profile,
-            engine: {
-              buckets: st.profile.engine.buckets.filter((x) => x.id !== id),
-            },
-          }),
-        })),
+        set((st) => {
+          const drop = new Set(collectDescendantIds(id, st.profile.engine.buckets));
+          return {
+            profile: touch({
+              ...st.profile,
+              engine: {
+                buckets: st.profile.engine.buckets.filter((x) => !drop.has(x.id)),
+              },
+            }),
+          };
+        }),
 
       saveScenario: (name) =>
         set((st) => {

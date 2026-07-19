@@ -96,8 +96,11 @@ body {
   line-height: 1.5;
 }
 
+/* 디스플레이도 Pretendard 통일 — 굵기·자간으로만 계층 */
 .font-display {
-  font-family: var(--font-display), "Nanum Myeongjo", "Apple SD Gothic Neo", serif;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .tnum {

@@ -1,14 +1,6 @@
 import type { Metadata } from "next";
-import { Nanum_Myeongjo } from "next/font/google";
 import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import "./globals.css";
-
-const display = Nanum_Myeongjo({
-  weight: ["700"],
-  subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "시라노 — 자산 설계 코치",
@@ -22,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ko" className={display.variable}>
+    <html lang="ko">
       <body>
         <AnalyticsProvider>{children}</AnalyticsProvider>
       </body>

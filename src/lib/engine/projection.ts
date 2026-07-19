@@ -5,6 +5,7 @@ import type {
   YearPoint,
 } from "../types";
 import { incomeByType } from "./stage";
+import { flattenLeavesForProjection, rootRatioSum } from "./tree";
 
 /**
  * C. 하이브리드 복리 프로젝션 (§8 · 플로우 12).
@@ -69,7 +70,9 @@ function seedBalances(snapshot: FinancialSnapshot, buckets: Bucket[]) {
 }
 
 export function projectEngine(input: ProjectionInput): ProjectionResult {
-  const { snapshot, buckets, horizonYears } = input;
+  const { snapshot, horizonYears } = input;
+  // 계층 → 리프의 수입 대비 %로 평탄화 후 기존 로직 적용
+  const buckets = flattenLeavesForProjection(input.buckets);
   const horizon = Math.max(1, Math.min(60, Math.round(horizonYears)));
 
   const laborLikeAnnual =
@@ -198,9 +201,9 @@ export function projectEngine(input: ProjectionInput): ProjectionResult {
   };
 }
 
-/** 배분 비율 합계 (같은 100% 검증용) */
+/** 루트(수입 바로 아래) 비율 합계 — 100% 검증용 */
 export function ratioSum(buckets: Bucket[]): number {
-  return buckets.reduce((s, b) => s + (b.ratioPct || 0), 0);
+  return rootRatioSum(buckets);
 }
 
 /**

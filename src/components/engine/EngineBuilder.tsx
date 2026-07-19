@@ -9,6 +9,8 @@ import {
   needsRealityNudge,
   adjustReturns,
   SENSITIVITY,
+  childrenOf,
+  collectDescendantIds,
   type SensitivityKey,
 } from "@/lib/engine";
 import type { Bucket } from "@/lib/types";
@@ -134,7 +136,8 @@ export function EngineBuilder() {
 
   const duplicate = (b: Bucket) => {
     const id = `b_${buckets.length}_${Math.random().toString(36).slice(2, 8)}`;
-    addBucket({ ...b, id, name: `${b.name} 복제`, position: buckets.length });
+    const pos = childrenOf(b.parentId, buckets).length;
+    addBucket({ ...b, id, name: `${b.name} 복제`, position: pos, parentId: b.parentId ?? null });
   };
 
   return (
@@ -150,7 +153,7 @@ export function EngineBuilder() {
           )}
         </div>
         <Badge tone={sumOk ? "emerald" : "amber"}>
-          배분 합계 {Math.round(sum)}% {sumOk ? "✓" : "(100% 필요)"}
+          수입 배분 {Math.round(sum)}% {sumOk ? "✓" : "(루트 합 100%)"}
         </Badge>
       </div>
 
@@ -169,7 +172,7 @@ export function EngineBuilder() {
               </button>
             </div>
             <div className="p-3">
-              <Palette onAdd={addBucket} nextPosition={buckets.length} />
+              <Palette buckets={buckets} selectedId={selectedId} onAdd={addBucket} />
             </div>
           </Card>
         ) : (
@@ -189,6 +192,11 @@ export function EngineBuilder() {
             selectedId={selectedId}
             onSelect={setSelectedId}
             onAdd={addBucket}
+            onDelete={(id) => {
+              const drop = collectDescendantIds(id, buckets);
+              removeBucket(id);
+              setSelectedId((cur) => (cur && drop.includes(cur) ? null : cur));
+            }}
             onRecommend={() => {
               setEngine(suggestEngineFromSnapshot(snapshot));
               track("engine_recommend_applied", { source: "canvas_empty" });
@@ -365,6 +373,8 @@ export function EngineBuilder() {
             <div className="p-3">
               <Inspector
                 bucket={selected}
+                all={buckets}
+                monthlyIncome={monthlyIncome}
                 onChange={(patch) => updateBucket(selected.id, patch)}
                 onDelete={() => {
                   removeBucket(selected.id);
@@ -379,7 +389,8 @@ export function EngineBuilder() {
                     : "border-amber-200 bg-amber-50 text-amber-700"
                 }`}
               >
-                비율 합계 {Math.round(sum)}% {sumOk ? "" : sum > 100 ? "· 초과" : "· 미달"}
+                수입 배분(루트) {Math.round(sum)}%{" "}
+                {sumOk ? "" : sum > 100 ? "· 초과" : "· 미달"}
               </div>
             </div>
           </Card>
@@ -390,6 +401,8 @@ export function EngineBuilder() {
         {selected && (
           <Inspector
             bucket={selected}
+            all={buckets}
+            monthlyIncome={monthlyIncome}
             onChange={(patch) => updateBucket(selected.id, patch)}
             onDelete={() => {
               removeBucket(selected.id);

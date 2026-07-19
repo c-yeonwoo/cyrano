@@ -1,23 +1,49 @@
 "use client";
 
 import { CATEGORY_META, type Bucket } from "@/lib/types";
+import {
+  isLeaf,
+  monthlyManwon,
+  parentOf,
+  ratioOfTotal,
+  siblingRatioSum,
+} from "@/lib/engine/tree";
 import { Field, NumberInput, Button, Badge } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { clampPct } from "@/lib/format";
 
 export function Inspector({
   bucket,
+  all,
+  monthlyIncome,
   onChange,
   onDelete,
   onDuplicate,
 }: {
   bucket: Bucket;
+  all: Bucket[];
+  monthlyIncome: number;
   onChange: (patch: Partial<Bucket>) => void;
   onDelete: () => void;
   onDuplicate: () => void;
 }) {
   const isInvest = bucket.category === "invest";
   const meta = CATEGORY_META[bucket.category];
+  const parent = parentOf(bucket, all);
+  const leaf = isLeaf(bucket, all);
+  const ofTotal = ratioOfTotal(bucket, all);
+  const month = monthlyManwon(bucket, all, monthlyIncome);
+  const sibSum = siblingRatioSum(bucket.parentId, all);
+  const ratioLabel = parent ? `"${parent.name}" 대비` : "월 수입 대비";
+
+  const handleDelete = () => {
+    const hasKids = all.some((b) => b.parentId === bucket.id);
+    const msg = hasKids
+      ? `"${bucket.name}"과 하위 항목을 모두 삭제할까요?`
+      : `"${bucket.name}" 항목을 삭제할까요?`;
+    if (!window.confirm(msg)) return;
+    onDelete();
+  };
 
   return (
     <div className="space-y-4">
@@ -27,10 +53,24 @@ export function Inspector({
           tone={bucket.category === "invest" ? "amber" : bucket.category === "save" ? "emerald" : "sky"}
         >
           {meta.label}
+          {!leaf ? " · 묶음" : ""}
         </Badge>
       </div>
 
-      <Field label="배분 비율" hint={`${bucket.ratioPct}%`}>
+      <div className="grid grid-cols-2 gap-2 rounded-xl border border-ink-100 bg-ink-50/80 px-3 py-2.5 text-xs">
+        <div>
+          <div className="text-ink-400">월 환산</div>
+          <div className="tnum text-sm font-extrabold text-ink-800">{month}만</div>
+        </div>
+        <div>
+          <div className="text-ink-400">전체 대비</div>
+          <div className="tnum text-sm font-extrabold text-ink-800">
+            {ofTotal.toFixed(1).replace(/\.0$/, "")}%
+          </div>
+        </div>
+      </div>
+
+      <Field label={`${ratioLabel} 비율`} hint="유저가 설정 · 형제 합 100% 권장">
         <input
           type="range"
           min={0}
@@ -45,8 +85,17 @@ export function Inspector({
         onChange={(n) => onChange({ ratioPct: clampPct(n) })}
         suffix="%"
       />
+      <div
+        className={`rounded-lg border px-2.5 py-1.5 text-center text-[11px] font-semibold ${
+          Math.round(sibSum) === 100
+            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+            : "border-amber-200 bg-amber-50 text-amber-700"
+        }`}
+      >
+        형제 합 {Math.round(sibSum)}% {Math.round(sibSum) === 100 ? "" : "· 100%에 맞춰 주세요"}
+      </div>
 
-      {bucket.category !== "spend" && (
+      {leaf && bucket.category !== "spend" && (
         <Field label="기대 연 수익률 (가정)">
           <NumberInput
             value={bucket.expectedAnnualReturnPct}
@@ -56,11 +105,8 @@ export function Inspector({
         </Field>
       )}
 
-      {isInvest && (
-        <Field
-          label="실현 수익률 (배당·임대·이자)"
-          hint="전체 수익 중 현금으로 실현되는 몫"
-        >
+      {leaf && isInvest && (
+        <Field label="실현 수익률 (배당·임대·이자)" hint="전체 수익 중 현금으로 실현되는 몫">
           <NumberInput
             value={bucket.realizedYieldPct}
             onChange={(n) =>
@@ -71,7 +117,7 @@ export function Inspector({
         </Field>
       )}
 
-      {isInvest && (
+      {leaf && isInvest && (
         <label className="flex items-center justify-between rounded-xl border border-ink-200 px-3 py-2 text-sm">
           <span className="flex items-center gap-1.5 text-ink-600">
             <Icon name="lock" size={15} /> 인출 제한 (연금·IRP)
@@ -89,7 +135,7 @@ export function Inspector({
         </label>
       )}
 
-      {bucket.isLocked && (
+      {leaf && bucket.isLocked && (
         <Field label="인출 제한 나이">
           <NumberInput
             value={bucket.lockUntilAge ?? 55}
@@ -110,7 +156,7 @@ export function Inspector({
         <Button variant="outline" className="flex-1" onClick={onDuplicate}>
           복제
         </Button>
-        <Button variant="danger" className="flex-1" onClick={onDelete}>
+        <Button variant="danger" className="flex-1" onClick={handleDelete}>
           삭제
         </Button>
       </div>

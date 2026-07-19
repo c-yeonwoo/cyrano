@@ -1,7 +1,7 @@
 import type { Bucket, EngineConfig, FinancialSnapshot, Profile, Vision } from "../types";
 import { emptyTracking } from "../types";
 import { seedSpending } from "../spending/seed";
-import { BUCKET_PRESETS, bucketFromPreset } from "../catalog";
+import { GROUP_PRESETS, ITEM_PRESETS, bucketFromPreset } from "../catalog";
 
 export const DEFAULT_SNAPSHOT: FinancialSnapshot = {
   cash: 0,
@@ -50,31 +50,44 @@ export function ensureSpending(p: Profile): Profile["spending"] {
   return p.spending ?? seedSpending();
 }
 
+function preset(key: string) {
+  return [...GROUP_PRESETS, ...ITEM_PRESETS].find((p) => p.key === key)!;
+}
+
 /**
- * 진단 데이터로 추천 엔진 초안 생성.
- * spend% ≈ 지출/소득, 나머지를 투자(주식·연금)·저축(비상금)에 분배.
+ * 진단 데이터로 추천 배분 초안 (계층).
+ * 루트: 투자 / 저축 / 지출 = 수입 대비 %
+ * 하위: 각 묶음 안에서 상위 대비 %
  * 모두 '예시·가정' — 사용자가 자유롭게 수정.
  */
 export function suggestEngineFromSnapshot(s: FinancialSnapshot): EngineConfig {
   const totalIncome = s.incomeSources.reduce((sum, i) => sum + i.monthly, 0);
-  const spendPct = totalIncome > 0 ? Math.min(90, Math.round((s.monthlySpending / totalIncome) * 100)) : 40;
+  const spendPct =
+    totalIncome > 0 ? Math.min(90, Math.round((s.monthlySpending / totalIncome) * 100)) : 40;
   const savablePct = 100 - spendPct;
-
-  // 저축(비상금)에 savable의 30%, 투자에 70% (주식 65 : 연금 35)
   const savePct = Math.round(savablePct * 0.3);
   const investPct = savablePct - savePct;
-  const stockPct = Math.round(investPct * 0.65);
-  const pensionPct = investPct - stockPct;
 
-  const stock = bucketFromPreset(BUCKET_PRESETS.find((p) => p.key === "stock")!, 0);
-  stock.ratioPct = stockPct;
-  const pension = bucketFromPreset(BUCKET_PRESETS.find((p) => p.key === "pension")!, 1);
-  pension.ratioPct = pensionPct;
-  const emergency = bucketFromPreset(BUCKET_PRESETS.find((p) => p.key === "emergency")!, 2);
-  emergency.ratioPct = savePct;
-  const fixed = bucketFromPreset(BUCKET_PRESETS.find((p) => p.key === "fixed")!, 3);
-  fixed.ratioPct = spendPct;
+  const invest = bucketFromPreset(preset("g_invest"), 0, null);
+  invest.ratioPct = investPct;
+  const save = bucketFromPreset(preset("g_save"), 1, null);
+  save.ratioPct = savePct;
+  const spend = bucketFromPreset(preset("g_spend"), 2, null);
+  spend.ratioPct = spendPct;
 
-  const buckets: Bucket[] = [stock, pension, emergency, fixed];
+  const stock = bucketFromPreset(preset("stock"), 0, invest.id);
+  stock.ratioPct = 65;
+  const pension = bucketFromPreset(preset("pension"), 1, invest.id);
+  pension.ratioPct = 35;
+
+  const emergency = bucketFromPreset(preset("emergency"), 0, save.id);
+  emergency.ratioPct = 100;
+
+  const fixed = bucketFromPreset(preset("fixed"), 0, spend.id);
+  fixed.ratioPct = 60;
+  const variable = bucketFromPreset(preset("variable"), 1, spend.id);
+  variable.ratioPct = 40;
+
+  const buckets: Bucket[] = [invest, save, spend, stock, pension, emergency, fixed, variable];
   return { buckets };
 }

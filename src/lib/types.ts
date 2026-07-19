@@ -86,9 +86,14 @@ export interface Bucket {
   id: string;
   category: BucketCategory;
   name: string;
-  /** income 대비 배분 비율 % */
+  /**
+   * 상위 대비 배분 비율 %(유저 설정).
+   * 루트(parentId 없음) = 월 수입 대비, 자식 = 바로 위 항목 대비.
+   */
   ratioPct: number;
-  /** 기대 연 수익률 % (가정) — 투자/저축 버킷 */
+  /** 없으면 수입 바로 아래 루트. 있으면 해당 항목의 하위 */
+  parentId?: string | null;
+  /** 기대 연 수익률 % (가정) — 투자/저축 리프 */
   expectedAnnualReturnPct: number;
   /**
    * 실현 수익률 % (배당·임대·이자). 전체 수익률 중 현금으로 실현되어
@@ -99,7 +104,7 @@ export interface Bucket {
   isLocked: boolean; // 연금·IRP 등 인출 제한
   lockUntilAge?: number;
   linkedTool?: string; // v2 cross-sell
-  /** 캔버스 정렬 순서 */
+  /** 같은 부모 아래 정렬 순서 */
   position: number;
 }
 

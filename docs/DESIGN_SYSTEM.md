@@ -18,8 +18,8 @@
 - 모든 수치 옆엔 항상 *예시·가정* 이 따라붙는다 (컴플라이언스이자 신뢰 장치).
 
 **로고**
-- 마크: 라운드 스퀘어(charcoal) 안의 **상승 복리 곡선**(흰선) + **bronze 엔드포인트**. `LogoMark`.
-- 워드마크: 디스플레이 세리프(`Nanum Myeongjo`) `시라노` + 산세리프 디스크립터. `Logo`.
+- 마크: 슬레이트 라운드 스퀘어 안 **열린 장부** + **스틸블루 상승 궤적**. `LogoMark`.
+- 워드마크: Pretendard extrabold `시라노` + 디스크립터. 세리프 혼용 없음. `Logo`.
 
 ---
 
@@ -47,8 +47,8 @@
 ---
 
 ## 3. 타이포그래피
-- **UI**: Pretendard Variable (self-host via `pretendard` 패키지, dynamic subset).
-- **워드마크**: Nanum Myeongjo 700 (`next/font/google` → `--font-display`, `.font-display`).
+- **전체**: Pretendard Variable (self-host via `pretendard` 패키지, dynamic subset).
+- **디스플레이**: 동일 패밀리 + `.font-display`(extrabold · tracking-tight). 세리프 미사용.
 - 위계: display(2xl/extrabold) · h1(xl/extrabold) · h2(base/bold) · body(sm) · caption(xs).
 - **재무 수치는 `.tnum`** (tabular-nums).
 
