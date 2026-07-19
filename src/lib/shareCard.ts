@@ -27,11 +27,12 @@ export async function renderShareCard(d: ShareCardData): Promise<Blob> {
   const ctx = canvas.getContext("2d")!;
   ctx.scale(dpr, dpr);
 
-  const brand = "#17181c";
-  const gold = "#f4b91e";
+  // Quiet Ledger — globals.css 토큰과 동기화
+  const brand = "#14151a";
+  const gold = "#c4a574";
   const ink900 = "#0f172a";
   const ink400 = "#94a3b8";
-  const goal = "#f4b91e";
+  const goal = "#b8956c";
 
   // 배경
   ctx.fillStyle = "#ffffff";

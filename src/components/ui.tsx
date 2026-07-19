@@ -60,9 +60,9 @@ export function Button({
 }) {
   const styles: Record<BtnVariant, string> = {
     primary:
-      "bg-gold-400 text-brand-900 hover:bg-gold-500 disabled:bg-ink-200 disabled:text-ink-400",
+      "bg-gold-400 text-brand-900 hover:bg-brand-800 hover:text-white disabled:bg-ink-200 disabled:text-ink-400",
     ghost: "text-ink-600 hover:bg-ink-100",
-    outline: "border border-ink-300 text-ink-800 hover:border-gold-400 hover:bg-gold-50",
+    outline: "border border-ink-300 text-ink-800 hover:border-gold-500 hover:bg-gold-50",
     danger: "border border-red-200 text-red-600 hover:bg-red-50",
   };
   return (

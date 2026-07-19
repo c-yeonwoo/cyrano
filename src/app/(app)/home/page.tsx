@@ -7,6 +7,7 @@ import { STAGE_NAMES } from "@/lib/engine";
 import { formatKRW, formatPct } from "@/lib/format";
 import { Card, StatCard, Button, EmptyState } from "@/components/ui";
 import { Icon, type IconName } from "@/components/Icon";
+import { LogoMark } from "@/components/Logo";
 import { AssetChart } from "@/components/AssetChart";
 import { computeStreak } from "@/lib/tracking";
 import { emptyTracking } from "@/lib/types";
@@ -19,7 +20,13 @@ export default function HomePage() {
   if (!snapshot || !stage) {
     return (
       <div className="space-y-5">
-        <h1 className="text-xl font-extrabold text-ink-800">홈</h1>
+        <div className="flex items-center gap-2.5">
+          <LogoMark size={32} />
+          <div>
+            <div className="font-display text-lg font-bold text-ink-900">시라노</div>
+            <p className="text-xs text-ink-500">자산 설계 코치</p>
+          </div>
+        </div>
         <EmptyState
           icon="diagnosis"
           title="먼저 진단으로 현재 위치를 확인해요"
@@ -41,35 +48,43 @@ export default function HomePage() {
   const firstScene = vision?.scenes.find((s) => s.text.trim());
 
   return (
-    <div className="space-y-5">
-      <h1 className="text-xl font-extrabold text-ink-800">홈 · 안녕하세요</h1>
+    <div className="space-y-6">
+      {/* 한 화면 한 메시지: 브랜드 + 단계·달성·다음 */}
+      <section className="rounded-2xl bg-brand-900 p-5 text-white md:p-6">
+        <div className="mb-4 flex items-center gap-2.5">
+          <LogoMark size={28} />
+          <span className="font-display text-base font-bold tracking-tight text-white">
+            시라노
+          </span>
+          <span className="text-[11px] text-white/40">자산 설계 코치</span>
+        </div>
 
-      {/* Hero */}
-      <div className="rounded-xl bg-brand-800 p-5 text-white">
         <div className="grid gap-4 sm:grid-cols-[1fr_auto]">
           <div>
-            <div className="text-xs text-white/50">현재 위치</div>
-            <div className="mt-1 text-2xl font-extrabold text-white">
-              {stage.stage} / 8 단계 · {STAGE_NAMES[stage.stage]}
-            </div>
+            <div className="text-xs text-white/45">지금 위치</div>
+            <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-white">
+              {stage.stage} / 8 · {STAGE_NAMES[stage.stage]}
+            </h1>
             {(whyLine || firstScene) && (
-              <div className="mt-1.5 flex items-center gap-1.5 text-sm text-white/70">
-                <Icon name="target" size={15} className="shrink-0 text-gold-400" />
-                {whyLine || firstScene?.text}
-                {vision && ` — 목표 순자산 ${formatKRW(vision.goalNetworth)}`}
-              </div>
+              <p className="mt-2 flex items-start gap-1.5 text-sm text-white/65">
+                <Icon name="target" size={15} className="mt-0.5 shrink-0 text-gold-400" />
+                <span>
+                  {whyLine || firstScene?.text}
+                  {vision && ` · 목표 ${formatKRW(vision.goalNetworth)}`}
+                </span>
+              </p>
             )}
           </div>
           {vision && projection && (
-            <div className="flex gap-6 border-t border-white/15 pt-3 sm:border-l sm:border-t-0 sm:pt-0 sm:pl-6">
+            <div className="flex gap-6 border-t border-white/12 pt-3 sm:border-l sm:border-t-0 sm:pt-0 sm:pl-6">
               <div>
-                <div className="text-[11px] text-white/50">목표 대비</div>
+                <div className="text-[11px] text-white/45">목표 대비</div>
                 <div className="tnum text-xl font-bold text-gold-400">
                   {formatPct(projection.achievementPct, 1)}
                 </div>
               </div>
               <div>
-                <div className="text-[11px] text-white/50">예상 ETA</div>
+                <div className="text-[11px] text-white/45">예상 ETA</div>
                 <div className="tnum text-xl font-bold text-gold-400">
                   {projection.targetReachYear != null
                     ? `약 ${projection.targetReachYear}년`
@@ -79,15 +94,15 @@ export default function HomePage() {
             </div>
           )}
         </div>
-      </div>
+      </section>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-        {/* 엔진 미니뷰 */}
-        <Card>
+      <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
+        {/* 엔진 미니뷰 — 보더 없이 open section에 가깝게 */}
+        <div>
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-sm font-bold text-ink-700">
               <Icon name="trending-up" size={16} className="text-brand-600" />
-              엔진 미리보기 ({targetYears}년 자산)
+              엔진 미리보기 ({targetYears}년)
             </div>
             <Link href="/engine">
               <Button className="!py-1.5 !text-xs">
@@ -95,46 +110,51 @@ export default function HomePage() {
               </Button>
             </Link>
           </div>
-          {projection && profile.engine.buckets.length > 0 ? (
-            <AssetChart
-              curve={projection.curve}
-              goalNetworth={vision?.goalNetworth}
-              targetReachYear={projection.targetReachYear}
-              height={200}
-              compact
-            />
-          ) : (
-            <EmptyState
-              icon="engine"
-              title="아직 엔진이 비어 있어요"
-              desc="버킷을 조립하면 n년 뒤 자산 곡선이 보입니다."
-              action={
-                <Link href="/engine">
-                  <Button>엔진 만들기</Button>
-                </Link>
-              }
-            />
-          )}
-        </Card>
+          <Card>
+            {projection && profile.engine.buckets.length > 0 ? (
+              <AssetChart
+                curve={projection.curve}
+                goalNetworth={vision?.goalNetworth}
+                targetReachYear={projection.targetReachYear}
+                height={200}
+                compact
+              />
+            ) : (
+              <EmptyState
+                icon="engine"
+                title="아직 엔진이 비어 있어요"
+                desc="버킷을 조립하면 n년 뒤 자산 곡선이 보입니다."
+                action={
+                  <Link href="/engine">
+                    <Button>엔진 만들기</Button>
+                  </Link>
+                }
+              />
+            )}
+          </Card>
+        </div>
 
-        {/* 다음 한 걸음 */}
-        <Card className="border-invest-100 bg-invest-50">
-          <div className="flex items-center gap-1.5 text-sm font-bold text-invest-700">
+        {/* 다음 한 걸음 — sage (코치 순간, invest 기능색과 분리) */}
+        <Card className="border-sage-100 bg-sage-50">
+          <div className="flex items-center gap-1.5 text-sm font-bold text-sage-700">
             <Icon name="check-circle" size={16} />
             다음 한 걸음
           </div>
-          <p className="mt-2 text-sm text-invest-700">{stage.nextStep}</p>
+          <p className="mt-2 text-sm text-sage-700">{stage.nextStep}</p>
           <Link href="/tracking">
-            <Button variant="outline" className="mt-4 w-full border-invest-500/40 text-invest-700">
+            <Button
+              variant="outline"
+              className="mt-4 w-full border-sage-500/35 text-sage-700 hover:border-sage-500 hover:bg-sage-50"
+            >
               {streak > 0 ? `실천하기 · ${streak}주 연속` : "실천하기"}
             </Button>
           </Link>
         </Card>
       </div>
 
-      {/* 자산·현금흐름 요약 */}
+      {/* 자산 요약 — open section */}
       <div>
-        <div className="mb-2 text-sm font-bold text-ink-700">자산 · 현금흐름 요약</div>
+        <div className="mb-2 text-sm font-bold text-ink-700">자산 · 현금흐름</div>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard label="순자산" value={formatKRW(m.netWorth)} />
           <StatCard label="저축률" value={formatPct(Math.max(0, m.savingsRatePct))} />
@@ -146,22 +166,21 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* 바로가기 */}
+      {/* 준비 바로가기 — 지출관리(placeholder) 제거해 기대 불일치 줄임 */}
       <div>
-        <div className="mb-2 text-sm font-bold text-ink-700">바로가기</div>
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="mb-2 text-sm font-bold text-ink-700">준비 · 수정</div>
+        <div className="grid grid-cols-3 gap-3">
           {(
             [
               { href: "/engine", label: "엔진", icon: "engine" },
-              { href: "/diagnosis", label: "진단 수정", icon: "diagnosis" },
-              { href: "/goals", label: "목표 수정", icon: "target" },
-              { href: "/spending", label: "지출관리", icon: "wallet" },
+              { href: "/diagnosis", label: "진단", icon: "diagnosis" },
+              { href: "/goals", label: "목표", icon: "target" },
             ] as { href: string; label: string; icon: IconName }[]
           ).map((q) => (
             <Link
               key={q.href}
               href={q.href}
-              className="flex items-center justify-center gap-1.5 rounded-2xl border border-ink-200 bg-white py-3 text-center text-sm font-medium text-ink-700 hover:bg-ink-50"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-ink-200 bg-white py-3 text-center text-sm font-medium text-ink-700 hover:bg-ink-100"
             >
               <Icon name={q.icon} size={16} className="text-ink-400" />
               {q.label}
@@ -171,7 +190,7 @@ export default function HomePage() {
       </div>
 
       <p className="text-xs text-ink-400">
-        홈 = &quot;지금 어디 · 목표까지 얼마 · 언제 · 다음 뭐&quot; 한 화면 · 모든 수치는 예시·가정
+        홈 = &quot;지금 어디 · 목표까지 얼마 · 언제 · 다음 뭐&quot; · 모든 수치는 예시·가정
       </p>
     </div>
   );

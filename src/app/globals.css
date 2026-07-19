@@ -1,13 +1,14 @@
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 @import "tailwindcss";
 
 /* ============================================================
    시라노 — Design Tokens
-   브랜드: 시라노 (당신의 자산 설계 코치) · Charcoal & Yellow-gold
-   원칙: 신뢰감 있는 핀테크 + 20대 친근함. 절제된 색, 명확한 위계, 데이터 우선.
+   브랜드: Quiet Ledger (조용한 장부) · Charcoal & Champagne bronze
+   원칙: 코치의 신뢰감 · 액센트(bronze)와 기능색(amber) 역할 분리 · 데이터 우선.
    ============================================================ */
 
 @theme {
-  /* ---- Brand (Charcoal · 순검정보다 한 톤 밝게 · 카테고리색과 충돌 0) ---- */
+  /* ---- Brand (Ink charcoal) ---- */
   --color-brand-50: #f7f7f8;
   --color-brand-100: #ececee;
   --color-brand-200: #d3d4d7;
@@ -16,23 +17,31 @@
   --color-brand-500: #585a60;
   --color-brand-600: #3a3c42;
   --color-brand-700: #292b30;
-  --color-brand-800: #202226;
-  --color-brand-900: #16171a;
+  --color-brand-800: #1c1d21;
+  --color-brand-900: #14151a;
 
-  /* ---- Gold accent (브랜드 강조 · 목표/돈) — 브라운기 없는 옐로우골드, 더 밝게 */
-  --color-gold-50: #fef9e7;
-  --color-gold-100: #fceeb3;
-  --color-gold-200: #fadd72;
-  --color-gold-300: #f7c93e;
-  --color-gold-400: #f4b91e;
-  --color-gold-500: #d99e0a;
-  --color-gold-600: #a97d0f;
+  /* ---- Accent: Champagne bronze (CTA·강조 · invest amber와 chroma로 분리) ----
+     토큰명 gold-* 는 하위호환 유지. 값은 옐로우골드가 아닌 뮤트 브론즈. */
+  --color-gold-50: #f6f3ee;
+  --color-gold-100: #ebe4d8;
+  --color-gold-200: #d9cdb8;
+  --color-gold-300: #cdb892;
+  --color-gold-400: #c4a574;
+  --color-gold-500: #a88b5c;
+  --color-gold-600: #7d6644;
 
-  /* ---- Ink (중립 · 텍스트/보더/배경) ---- */
-  --color-ink-50: #f8fafc;
-  --color-ink-100: #f1f5f9;
-  --color-ink-200: #e2e8f0;
-  --color-ink-300: #cbd5e1;
+  /* ---- Coach moment (드물게 · 다음 한 걸음 등) ---- */
+  --color-sage-50: #f0f4f2;
+  --color-sage-100: #dce6e1;
+  --color-sage-500: #5b7c6e;
+  --color-sage-600: #4a6659;
+  --color-sage-700: #3a5147;
+
+  /* ---- Ink (중립 · 텍스트/보더/배경 · cool paper) ---- */
+  --color-ink-50: #f4f5f7;
+  --color-ink-100: #eef0f3;
+  --color-ink-200: #e2e5ea;
+  --color-ink-300: #c8ced6;
   --color-ink-400: #94a3b8;
   --color-ink-500: #64748b;
   --color-ink-600: #475569;
@@ -41,7 +50,7 @@
   --color-ink-900: #0f172a;
 
   /* ---- 자산 카테고리 (기능색 · 접근성 확보) ---- */
-  /* invest = 성장/복리 (amber) */
+  /* invest = 성장/복리 (amber) — CTA bronze와 구분 유지 */
   --color-invest-50: #fffbeb;
   --color-invest-100: #fef3c7;
   --color-invest-500: #f59e0b;
@@ -65,15 +74,16 @@
   --color-warning: #d97706;
   --color-danger: #dc2626;
   --color-locked: #0d9488; /* 잠긴 자산(연금·IRP) — teal */
-  --color-goal: #f4b91e; /* 목표선 — 옐로우골드 (골든 타깃) */
+  /* 목표선 = bronze보다 한 톤 깊은 샴페인 (차트 가독) */
+  --color-goal: #b8956c;
 
   /* ---- Radius ---- */
   --radius-card: 1rem; /* 16px */
   --radius-field: 0.75rem; /* 12px */
 
   /* ---- Font ---- */
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Apple SD Gothic Neo",
-    "Malgun Gothic", "Pretendard", sans-serif;
+  --font-sans: "Pretendard Variable", Pretendard, ui-sans-serif, system-ui,
+    -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 }
 
 /* ============================================================ */
@@ -94,13 +104,18 @@ body {
   font-family: var(--font-sans);
 }
 
+/* 워드마크·브랜드 순간 — next/font가 html에 --font-display 주입 */
+.font-display {
+  font-family: var(--font-display), "Nanum Myeongjo", "Apple SD Gothic Neo", serif;
+}
+
 /* 숫자는 표 정렬 (재무 수치 위계) */
 .tnum {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
 }
 
-/* 슬라이더 (배분 비율 편집) */
+/* 슬라이더 (배분 비율 조절) */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
