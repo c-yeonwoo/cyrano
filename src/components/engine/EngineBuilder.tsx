@@ -13,7 +13,13 @@ import {
   collectDescendantIds,
   type SensitivityKey,
 } from "@/lib/engine";
-import type { Bucket } from "@/lib/types";
+import type { Bucket, IncomeSourceType } from "@/lib/types";
+import {
+  createIncomeSource,
+  normalizeIncomeSources,
+  sumMonthlyIncome,
+} from "@/lib/income";
+import { GROUP_PRESETS, bucketFromPreset } from "@/lib/catalog";
 import { formatKRW } from "@/lib/format";
 import { renderShareCard, shareOrDownload } from "@/lib/shareCard";
 import { track, trackAhaAllocatedOnce } from "@/lib/analytics";
@@ -26,20 +32,29 @@ import { ConfirmModal } from "@/components/ConfirmModal";
 import { Palette } from "./Palette";
 import { Inspector } from "./Inspector";
 import { EngineCanvas } from "./EngineCanvas";
+import {
+  IncomeHubInspector,
+  PoolHubInspector,
+  SourceInspector,
+} from "./HubInspector";
 
 export function EngineBuilder() {
   const snapshot = useProfile((s) => s.profile.snapshot) ?? DEFAULT_SNAPSHOT;
   const vision = useProfile((s) => s.profile.vision);
-  const buckets = useProfile((s) => s.profile.engine.buckets);
+  const engine = useProfile((s) => s.profile.engine);
+  const buckets = engine.buckets;
   const scenarios = useProfile((s) => s.profile.scenarios);
   const addBucket = useProfile((s) => s.addBucket);
   const updateBucket = useProfile((s) => s.updateBucket);
   const removeBucket = useProfile((s) => s.removeBucket);
   const setBuckets = useProfile((s) => s.setBuckets);
   const setEngine = useProfile((s) => s.setEngine);
+  const setSnapshot = useProfile((s) => s.setSnapshot);
   const saveScenario = useProfile((s) => s.saveScenario);
   const loadScenario = useProfile((s) => s.loadScenario);
   const deleteScenario = useProfile((s) => s.deleteScenario);
+
+  const incomeSources = normalizeIncomeSources(snapshot.incomeSources);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [compareId, setCompareId] = useState<string | null>(null);
@@ -68,9 +83,36 @@ export function EngineBuilder() {
     setPendingDelete(null);
   };
 
-  const monthlyIncome = snapshot.incomeSources.reduce((s, i) => s + i.monthly, 0);
+  const monthlyIncome = sumMonthlyIncome(incomeSources);
   const sum = ratioSum(buckets);
   const sumOk = Math.round(sum) === 100;
+
+  const patchSources = (next: typeof incomeSources) => {
+    setSnapshot({ ...snapshot, incomeSources: next });
+  };
+
+  const moveSibling = (id: string, dir: -1 | 1) => {
+    const b = buckets.find((x) => x.id === id);
+    if (!b) return;
+    const sibs = childrenOf(b.parentId, buckets);
+    const idx = sibs.findIndex((s) => s.id === id);
+    const j = idx + dir;
+    if (idx < 0 || j < 0 || j >= sibs.length) return;
+    const reordered = [...sibs];
+    [reordered[idx], reordered[j]] = [reordered[j]!, reordered[idx]!];
+    const posMap = new Map(reordered.map((s, i) => [s.id, i]));
+    setBuckets(buckets.map((x) => (posMap.has(x.id) ? { ...x, position: posMap.get(x.id)! } : x)));
+  };
+
+  const moveSourceSibling = (id: string, dir: -1 | 1) => {
+    const sorted = [...incomeSources].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    const idx = sorted.findIndex((s) => s.id === id);
+    const j = idx + dir;
+    if (idx < 0 || j < 0 || j >= sorted.length) return;
+    const reordered = [...sorted];
+    [reordered[idx], reordered[j]] = [reordered[j]!, reordered[idx]!];
+    patchSources(reordered.map((s, i) => ({ ...s, position: i })));
+  };
 
   useEffect(() => {
     if (sumOk && buckets.length > 0) {
@@ -122,6 +164,10 @@ export function EngineBuilder() {
   }, [compareId, scenarios, snapshot, horizon, vision?.goalNetworth]);
 
   const selected = buckets.find((b) => b.id === selectedId) ?? null;
+  const selectedSource =
+    selectedId && !selected && selectedId !== "__income__" && selectedId !== "__pool__"
+      ? incomeSources.find((s) => s.id === selectedId) ?? null
+      : null;
   const targetYears = vision?.targetYears ?? 15;
   const atYear = (curve: typeof projection.curve) =>
     curve.find((p) => p.year === targetYears) ?? curve[curve.length - 1];
@@ -194,7 +240,11 @@ export function EngineBuilder() {
               </button>
             </div>
             <div className="p-3">
-              <Palette buckets={buckets} selectedId={selectedId} onAdd={addBucket} />
+              <Palette
+                buckets={buckets}
+                selectedId={selected && selectedId ? selectedId : null}
+                onAdd={addBucket}
+              />
             </div>
           </Card>
         ) : (
@@ -210,15 +260,44 @@ export function EngineBuilder() {
         <div className="min-w-0 flex-1 space-y-4">
           <EngineCanvas
             buckets={buckets}
-            monthlyIncome={monthlyIncome}
+            engine={engine}
+            incomeSources={incomeSources}
             selectedId={selectedId}
             onSelect={setSelectedId}
             onAdd={addBucket}
             onRequestDelete={requestDelete}
-            onMoveNode={(id, x, y) => updateBucket(id, { canvasX: x, canvasY: y })}
-            onResetLayout={() =>
-              setBuckets(buckets.map((b) => ({ ...b, canvasX: null, canvasY: null })))
-            }
+            onMoveNode={(id, x, y) => {
+              if (id === "__income__") {
+                setEngine({ ...engine, incomeCanvasX: x, incomeCanvasY: y });
+                return;
+              }
+              if (id === "__pool__") {
+                setEngine({ ...engine, poolCanvasX: x, poolCanvasY: y });
+                return;
+              }
+              if (incomeSources.some((s) => s.id === id)) {
+                patchSources(
+                  incomeSources.map((s) =>
+                    s.id === id ? { ...s, canvasX: x, canvasY: y } : s,
+                  ),
+                );
+                return;
+              }
+              updateBucket(id, { canvasX: x, canvasY: y });
+            }}
+            onResetLayout={() => {
+              setEngine({
+                ...engine,
+                buckets: buckets.map((b) => ({ ...b, canvasX: null, canvasY: null })),
+                incomeCanvasX: null,
+                incomeCanvasY: null,
+                poolCanvasX: null,
+                poolCanvasY: null,
+              });
+              patchSources(
+                incomeSources.map((s) => ({ ...s, canvasX: null, canvasY: null })),
+              );
+            }}
             onRecommend={() => {
               setEngine(suggestEngineFromSnapshot(snapshot));
               track("engine_recommend_applied", { source: "canvas_empty" });
@@ -376,14 +455,14 @@ export function EngineBuilder() {
           </Card>
         </div>
 
-        {/* 항목 수정 — 항상 고정 폭 (선택 여부와 무관 → 캔버스 폭 흔들림 방지) */}
+        {/* 항목 수정 — 항상 고정 폭 */}
         <Card
           pad={false}
           className="sticky top-4 hidden max-h-[calc(100vh-2rem)] w-[280px] shrink-0 overflow-y-auto border-ink-200 lg:block"
         >
           <div className="flex items-center justify-between border-b border-ink-100 px-3 py-2.5">
             <span className="text-sm font-bold text-ink-800">항목 수정</span>
-            {selected && (
+            {selectedId && (
               <button
                 onClick={() => setSelectedId(null)}
                 aria-label="선택 해제"
@@ -394,7 +473,39 @@ export function EngineBuilder() {
             )}
           </div>
           <div className="p-3">
-            {selected ? (
+            {selectedId === "__income__" ? (
+              <IncomeHubInspector
+                monthlyIncome={monthlyIncome}
+                onAddGroup={() => {
+                  const pos = childrenOf(null, buckets).length;
+                  addBucket(bucketFromPreset(GROUP_PRESETS[0]!, pos, null));
+                }}
+                onAddSource={(type: IncomeSourceType) => {
+                  patchSources([
+                    ...incomeSources,
+                    createIncomeSource(type, incomeSources.length),
+                  ]);
+                }}
+              />
+            ) : selectedId === "__pool__" ? (
+              <PoolHubInspector />
+            ) : selectedSource ? (
+              <SourceInspector
+                source={selectedSource}
+                onChange={(patch) =>
+                  patchSources(
+                    incomeSources.map((s) =>
+                      s.id === selectedSource.id ? { ...s, ...patch } : s,
+                    ),
+                  )
+                }
+                onDelete={() => {
+                  patchSources(incomeSources.filter((s) => s.id !== selectedSource.id));
+                  setSelectedId(null);
+                }}
+                onMoveSibling={(dir) => moveSourceSibling(selectedSource.id!, dir)}
+              />
+            ) : selected ? (
               <>
                 <Inspector
                   bucket={selected}
@@ -403,6 +514,7 @@ export function EngineBuilder() {
                   onChange={(patch) => updateBucket(selected.id, patch)}
                   onDelete={() => requestDelete(selected.id)}
                   onDuplicate={() => duplicate(selected)}
+                  onMoveSibling={(dir) => moveSibling(selected.id, dir)}
                 />
                 <div
                   className={`mt-4 rounded-lg border px-3 py-2 text-center text-xs font-semibold ${
@@ -418,9 +530,9 @@ export function EngineBuilder() {
             ) : (
               <div className="flex flex-col items-center px-2 py-10 text-center">
                 <Icon name="layers" size={28} className="text-ink-300" />
-                <p className="mt-3 text-sm font-semibold text-ink-600">항목을 선택하세요</p>
+                <p className="mt-3 text-sm font-semibold text-ink-600">노드를 선택하세요</p>
                 <p className="mt-1 text-xs leading-relaxed text-ink-400">
-                  캔버스에서 노드를 누르면 비율·월 환산을 수정할 수 있어요.
+                  수입 항목·월 수입·배분·합류를 눌러 수정할 수 있어요.
                 </p>
               </div>
             )}
@@ -428,7 +540,41 @@ export function EngineBuilder() {
         </Card>
       </div>
 
-      <BottomSheet open={selected !== null} onClose={() => setSelectedId(null)} title="항목 수정">
+      <BottomSheet
+        open={selectedId !== null}
+        onClose={() => setSelectedId(null)}
+        title="항목 수정"
+      >
+        {selectedId === "__income__" && (
+          <IncomeHubInspector
+            monthlyIncome={monthlyIncome}
+            onAddGroup={() => {
+              const pos = childrenOf(null, buckets).length;
+              addBucket(bucketFromPreset(GROUP_PRESETS[0]!, pos, null));
+            }}
+            onAddSource={(type) => {
+              patchSources([...incomeSources, createIncomeSource(type, incomeSources.length)]);
+            }}
+          />
+        )}
+        {selectedId === "__pool__" && <PoolHubInspector />}
+        {selectedSource && (
+          <SourceInspector
+            source={selectedSource}
+            onChange={(patch) =>
+              patchSources(
+                incomeSources.map((s) =>
+                  s.id === selectedSource.id ? { ...s, ...patch } : s,
+                ),
+              )
+            }
+            onDelete={() => {
+              patchSources(incomeSources.filter((s) => s.id !== selectedSource.id));
+              setSelectedId(null);
+            }}
+            onMoveSibling={(dir) => moveSourceSibling(selectedSource.id!, dir)}
+          />
+        )}
         {selected && (
           <Inspector
             bucket={selected}
@@ -437,6 +583,7 @@ export function EngineBuilder() {
             onChange={(patch) => updateBucket(selected.id, patch)}
             onDelete={() => requestDelete(selected.id)}
             onDuplicate={() => duplicate(selected)}
+            onMoveSibling={(dir) => moveSibling(selected.id, dir)}
           />
         )}
       </BottomSheet>

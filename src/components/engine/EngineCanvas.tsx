@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Bucket, BucketCategory } from "@/lib/types";
+import type { Bucket, BucketCategory, EngineConfig, IncomeSource } from "@/lib/types";
 import {
   GROUP_PRESETS,
   ITEM_PRESETS,
@@ -17,7 +17,13 @@ import {
   pathToRoot,
   ratioOfTotal,
 } from "@/lib/engine/tree";
-import { edgePath, layoutEngineGraph } from "@/lib/engine/layout";
+import {
+  anchorsFromEngine,
+  edgePath,
+  layoutEngineGraph,
+  type GraphNode,
+} from "@/lib/engine/layout";
+import { incomeSourceLabel, normalizeIncomeSources, sumMonthlyIncome } from "@/lib/income";
 import { Button, EmptyState, TextInput } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 
@@ -112,9 +118,35 @@ type DragState = {
   moved: boolean;
 };
 
+function startDrag(
+  e: React.PointerEvent,
+  id: string,
+  n: { x: number; y: number },
+  clientToSvg: (x: number, y: number) => { x: number; y: number },
+  dragRef: React.MutableRefObject<DragState | null>,
+  setDrag: (d: DragState) => void,
+) {
+  if ((e.target as HTMLElement).closest("button")) return;
+  e.preventDefault();
+  const p = clientToSvg(e.clientX, e.clientY);
+  const next: DragState = {
+    id,
+    grabDX: p.x - n.x,
+    grabDY: p.y - n.y,
+    x: n.x,
+    y: n.y,
+    originX: n.x,
+    originY: n.y,
+    moved: false,
+  };
+  dragRef.current = next;
+  setDrag(next);
+}
+
 export function EngineCanvas({
   buckets,
-  monthlyIncome,
+  engine,
+  incomeSources,
   selectedId,
   onSelect,
   onAdd,
@@ -124,7 +156,8 @@ export function EngineCanvas({
   onRecommend,
 }: {
   buckets: Bucket[];
-  monthlyIncome: number;
+  engine: EngineConfig;
+  incomeSources: IncomeSource[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
   onAdd: (b: Bucket) => void;
@@ -139,6 +172,9 @@ export function EngineCanvas({
   const [animate, setAnimate] = useState(false);
   const [quickAddParent, setQuickAddParent] = useState<string | null | undefined>(undefined);
   const [drag, setDrag] = useState<DragState | null>(null);
+
+  const sources = useMemo(() => normalizeIncomeSources(incomeSources), [incomeSources]);
+  const monthlyIncome = sumMonthlyIncome(sources);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -160,7 +196,6 @@ export function EngineCanvas({
     return { x: p.x, y: p.y };
   };
 
-  // 드래그 중 window에서 추적 — foreignObject 캡처 이슈 회피
   useEffect(() => {
     if (!drag) return;
     const onMove = (e: PointerEvent) => {
@@ -188,23 +223,27 @@ export function EngineCanvas({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- start once per drag id
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [drag?.id]);
 
-  const layoutBuckets = useMemo(() => {
-    if (!drag) return buckets;
-    return buckets.map((b) =>
-      b.id === drag.id ? { ...b, canvasX: drag.x, canvasY: drag.y } : b,
-    );
-  }, [buckets, drag]);
-
   const { nodes, edges, width, height } = useMemo(
-    () => layoutEngineGraph(layoutBuckets),
-    [layoutBuckets],
+    () =>
+      layoutEngineGraph({
+        buckets,
+        incomeSources: sources,
+        anchors: anchorsFromEngine(engine),
+        drag: drag ? { id: drag.id, x: drag.x, y: drag.y } : null,
+      }),
+    [buckets, sources, engine, drag],
   );
 
-  const crumb = selectedId ? pathToRoot(selectedId, buckets) : [];
-  const hasCustomLayout = buckets.some((b) => b.canvasX != null || b.canvasY != null);
+  const crumb =
+    selectedId && buckets.some((b) => b.id === selectedId) ? pathToRoot(selectedId, buckets) : [];
+  const hasCustomLayout =
+    buckets.some((b) => b.canvasX != null || b.canvasY != null) ||
+    sources.some((s) => s.canvasX != null || s.canvasY != null) ||
+    engine.incomeCanvasX != null ||
+    engine.poolCanvasX != null;
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -222,7 +261,7 @@ export function EngineCanvas({
     onAdd(bucketFromPreset(preset, siblings.length, parentId));
   };
 
-  if (buckets.length === 0) {
+  if (buckets.length === 0 && sources.every((s) => s.monthly === 0)) {
     return (
       <div
         onDragOver={(e) => {
@@ -237,8 +276,8 @@ export function EngineCanvas({
       >
         <EmptyState
           icon="layers"
-          title="노드를 추가해 배분 트리를 만드세요"
-          desc="수입에서 시작해 묶음·세부 항목을 왼→오른쪽으로 뻗어 나갑니다."
+          title="수입 항목과 배분 트리를 만드세요"
+          desc="왼쪽 수입 → 월 수입 합산 → 투자·저축·지출로 흘러갑니다."
           action={
             <div className="flex flex-wrap justify-center gap-2">
               <Button onClick={onRecommend}>추천 배분으로 시작</Button>
@@ -261,6 +300,90 @@ export function EngineCanvas({
     );
   }
 
+  const renderBucket = (n: GraphNode) => {
+    const b = n.bucket!;
+    const leaf = isLeaf(b, buckets);
+    const ofTotal = ratioOfTotal(b, buckets);
+    const month = monthlyManwon(b, buckets, monthlyIncome);
+    const selected = b.id === selectedId;
+    const parentLabel = b.parentId ? "상위" : "수입";
+    const compact = n.depth >= 2;
+    const dragging = drag?.id === b.id;
+
+    return (
+      <foreignObject key={n.id} x={n.x} y={n.y} width={n.w} height={n.h}>
+        <div
+          role="button"
+          tabIndex={0}
+          onPointerDown={(e) => startDrag(e, b.id, n, clientToSvg, dragRef, setDrag)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onSelect(b.id);
+            }
+          }}
+          className={`group flex h-full w-full select-none flex-col justify-center border text-left transition-shadow ${
+            compact ? "rounded-lg px-2 py-1" : "rounded-xl px-2.5 py-1.5"
+          } ${CAT_NODE[b.category]} ${
+            selected ? "ring-2 ring-brand-500 shadow-sm" : "hover:shadow-sm"
+          } ${dragging ? "cursor-grabbing opacity-90 shadow-md" : "cursor-grab"}`}
+        >
+          <div className="flex items-start gap-1">
+            <div className="min-w-0 flex-1">
+              <div
+                className={`flex items-center gap-0.5 font-bold leading-tight ${
+                  compact ? "text-[11px]" : "text-[13px]"
+                }`}
+              >
+                {b.isLocked && <Icon name="lock" size={compact ? 10 : 11} className="text-locked" />}
+                <span className="truncate">{b.name}</span>
+              </div>
+              <div
+                className={`mt-0.5 flex flex-wrap gap-x-1.5 opacity-80 ${
+                  compact ? "text-[9px]" : "text-[10px]"
+                }`}
+              >
+                <span className="tnum font-semibold">
+                  {parentLabel} {b.ratioPct}%
+                </span>
+                {!compact && (
+                  <span className="tnum">전체 {ofTotal.toFixed(1).replace(/\.0$/, "")}%</span>
+                )}
+                <span className="tnum font-semibold">월 {month}만</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              aria-label={`${b.name} 삭제`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRequestDelete(b.id);
+              }}
+              className="shrink-0 rounded p-0.5 text-ink-400 opacity-0 hover:text-red-500 group-hover:opacity-100"
+            >
+              <Icon name="x" size={compact ? 11 : 12} />
+            </button>
+          </div>
+          {selected && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setQuickAddParent(b.id);
+              }}
+              className="mt-1 flex w-full items-center justify-center gap-0.5 rounded-md bg-white/70 py-0.5 text-[10px] font-bold text-ink-600 hover:bg-white"
+            >
+              <Icon name="plus" size={11} /> 하위
+            </button>
+          )}
+          {!leaf && !selected && !compact && (
+            <div className="mt-0.5 text-[9px] font-semibold opacity-50">묶음</div>
+          )}
+        </div>
+      </foreignObject>
+    );
+  };
+
   return (
     <div
       onDragOver={(e) => {
@@ -276,8 +399,12 @@ export function EngineCanvas({
       <div className="flex flex-wrap items-center gap-1 border-b border-ink-100 px-3 py-2 text-xs">
         <button
           type="button"
-          onClick={() => onSelect(null)}
-          className="rounded-md px-1.5 py-0.5 font-semibold text-brand-600 hover:bg-brand-50"
+          onClick={() => onSelect("__income__")}
+          className={`rounded-md px-1.5 py-0.5 font-semibold ${
+            selectedId === "__income__"
+              ? "bg-brand-50 text-brand-700"
+              : "text-brand-600 hover:bg-brand-50"
+          }`}
         >
           월 수입
         </button>
@@ -305,7 +432,7 @@ export function EngineCanvas({
               자동 정렬
             </button>
           )}
-          <span className="tnum font-semibold text-ink-500">월 {monthlyIncome}만</span>
+          <span className="tnum font-semibold text-ink-500">합산 {monthlyIncome}만</span>
         </div>
       </div>
 
@@ -313,203 +440,172 @@ export function EngineCanvas({
         <svg
           ref={svgRef}
           viewBox={`0 0 ${width} ${height}`}
-          className="w-full min-w-[720px] touch-none"
-          style={{ height: Math.min(520, Math.max(360, height * 0.55)), minHeight: 360 }}
+          className="w-full min-w-[780px] touch-none"
+          style={{ height: Math.min(560, Math.max(380, height * 0.52)), minHeight: 380 }}
           preserveAspectRatio="xMidYMid meet"
         >
           <text
             x={width / 2}
-            y={18}
+            y={16}
             textAnchor="middle"
-            fontSize="11"
+            fontSize="10"
             fontWeight="600"
-            fill="var(--color-brand-500)"
+            fill="var(--color-ink-400)"
           >
-            배당·이자 등 → 다시 수입으로
+            수입 항목 → 월 수입 → 배분 · 투자·저축은 합류(중간) · 지출은 아래 밴드
           </text>
 
           {nodes.map((n) => {
-            if (n.kind === "income") {
+            if (n.kind === "source") {
+              const src = n.incomeSource!;
+              const selected = selectedId === n.id;
+              const dragging = drag?.id === n.id;
               return (
                 <foreignObject key={n.id} x={n.x} y={n.y} width={n.w} height={n.h}>
-                  <div className="flex h-full flex-col justify-center rounded-xl border border-brand-200 bg-brand-50 px-2 text-center">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onPointerDown={(e) => startDrag(e, n.id, n, clientToSvg, dragRef, setDrag)}
+                    className={`flex h-full w-full cursor-grab select-none flex-col justify-center rounded-lg border border-brand-200 bg-white px-2 text-left ${
+                      selected ? "ring-2 ring-brand-500" : "hover:shadow-sm"
+                    } ${dragging ? "cursor-grabbing opacity-90" : ""}`}
+                  >
+                    <div className="truncate text-[11px] font-bold text-brand-800">
+                      {incomeSourceLabel(src)}
+                    </div>
+                    <div className="tnum text-sm font-extrabold text-brand-700">
+                      월 {src.monthly}만
+                    </div>
+                  </div>
+                </foreignObject>
+              );
+            }
+
+            if (n.kind === "income") {
+              const selected = selectedId === "__income__";
+              const dragging = drag?.id === "__income__";
+              return (
+                <foreignObject key={n.id} x={n.x} y={n.y} width={n.w} height={n.h}>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onPointerDown={(e) =>
+                      startDrag(e, "__income__", n, clientToSvg, dragRef, setDrag)
+                    }
+                    className={`flex h-full w-full cursor-grab select-none flex-col justify-center rounded-xl border border-brand-200 bg-brand-50 px-2 text-center ${
+                      selected ? "ring-2 ring-brand-500" : "hover:shadow-sm"
+                    } ${dragging ? "cursor-grabbing opacity-90" : ""}`}
+                  >
                     <div className="text-[11px] font-semibold text-brand-600">월 수입</div>
-                    <div className="tnum mt-0.5 text-sm font-extrabold text-brand-800">
+                    <div className="tnum mt-0.5 text-base font-extrabold text-brand-800">
                       {monthlyIncome}만
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setQuickAddParent(null)}
-                      className="mx-auto mt-1.5 flex items-center gap-0.5 rounded-md bg-white/80 px-1.5 py-0.5 text-[10px] font-bold text-brand-600 hover:bg-white"
-                    >
-                      <Icon name="plus" size={11} /> 묶음
-                    </button>
+                    <div className="mt-0.5 text-[9px] text-brand-400">항목 합산</div>
+                    {selected && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setQuickAddParent(null);
+                        }}
+                        className="mx-auto mt-1.5 flex items-center gap-0.5 rounded-md bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-brand-600 hover:bg-white"
+                      >
+                        <Icon name="plus" size={11} /> 묶음
+                      </button>
+                    )}
                   </div>
                 </foreignObject>
               );
             }
+
             if (n.kind === "pool") {
+              const selected = selectedId === "__pool__";
+              const dragging = drag?.id === "__pool__";
               return (
                 <foreignObject key={n.id} x={n.x} y={n.y} width={n.w} height={n.h}>
-                  <div className="flex h-full flex-col items-center justify-center rounded-xl bg-brand-800 px-2 text-center text-white">
-                    <div className="text-sm font-bold">모인 자산</div>
-                    <div className="mt-0.5 text-[10px] opacity-80">복리 누적</div>
-                    <div className="mt-1.5 text-[9px] leading-relaxed opacity-65">
-                      미실현 = 내부
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onPointerDown={(e) =>
+                      startDrag(e, "__pool__", n, clientToSvg, dragRef, setDrag)
+                    }
+                    className={`flex h-full w-full cursor-grab select-none flex-col items-center justify-center rounded-xl bg-brand-800 px-2 text-center text-white ${
+                      selected ? "ring-2 ring-gold-400" : ""
+                    } ${dragging ? "cursor-grabbing opacity-90" : ""}`}
+                  >
+                    <div className="text-sm font-bold">투자·저축 합류</div>
+                    <div className="mt-0.5 text-[10px] opacity-80">중간 집계</div>
+                    <div className="mt-1.5 text-[9px] leading-relaxed opacity-60">
+                      최종 싱크 아님
                       <br />
-                      실현 = 재유입
+                      실현→수입 재유입
                     </div>
                   </div>
                 </foreignObject>
               );
             }
 
-            const b = n.bucket!;
-            const leaf = isLeaf(b, buckets);
-            const ofTotal = ratioOfTotal(b, buckets);
-            const month = monthlyManwon(b, buckets, monthlyIncome);
-            const selected = b.id === selectedId;
-            const parentLabel = b.parentId ? "상위" : "수입";
-            const compact = n.depth >= 2;
-            const dragging = drag?.id === b.id;
-
-            return (
-              <foreignObject key={n.id} x={n.x} y={n.y} width={n.w} height={n.h}>
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onPointerDown={(e) => {
-                    if ((e.target as HTMLElement).closest("button")) return;
-                    e.preventDefault();
-                    const p = clientToSvg(e.clientX, e.clientY);
-                    const next: DragState = {
-                      id: b.id,
-                      grabDX: p.x - n.x,
-                      grabDY: p.y - n.y,
-                      x: n.x,
-                      y: n.y,
-                      originX: n.x,
-                      originY: n.y,
-                      moved: false,
-                    };
-                    dragRef.current = next;
-                    setDrag(next);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      onSelect(b.id);
-                    }
-                  }}
-                  className={`group flex h-full w-full select-none flex-col justify-center border text-left transition-shadow ${
-                    compact ? "rounded-lg px-2 py-1" : "rounded-xl px-2.5 py-1.5"
-                  } ${CAT_NODE[b.category]} ${
-                    selected ? "ring-2 ring-brand-500 shadow-sm" : "hover:shadow-sm"
-                  } ${dragging ? "cursor-grabbing opacity-90 shadow-md" : "cursor-grab"}`}
-                >
-                  <div className="flex items-start gap-1">
-                    <div className="min-w-0 flex-1">
-                      <div
-                        className={`flex items-center gap-0.5 font-bold leading-tight ${
-                          compact ? "text-[11px]" : "text-[13px]"
-                        }`}
-                      >
-                        {b.isLocked && <Icon name="lock" size={compact ? 10 : 11} className="text-locked" />}
-                        <span className="truncate">{b.name}</span>
-                      </div>
-                      <div
-                        className={`mt-0.5 flex flex-wrap gap-x-1.5 opacity-80 ${
-                          compact ? "text-[9px]" : "text-[10px]"
-                        }`}
-                      >
-                        <span className="tnum font-semibold">
-                          {parentLabel} {b.ratioPct}%
-                        </span>
-                        {!compact && (
-                          <span className="tnum">전체 {ofTotal.toFixed(1).replace(/\.0$/, "")}%</span>
-                        )}
-                        <span className="tnum font-semibold">월 {month}만</span>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      aria-label={`${b.name} 삭제`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRequestDelete(b.id);
-                      }}
-                      className="shrink-0 rounded p-0.5 text-ink-400 opacity-0 hover:text-red-500 group-hover:opacity-100"
-                    >
-                      <Icon name="x" size={compact ? 11 : 12} />
-                    </button>
-                  </div>
-                  {selected && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setQuickAddParent(b.id);
-                      }}
-                      className="mt-1 flex w-full items-center justify-center gap-0.5 rounded-md bg-white/70 py-0.5 text-[10px] font-bold text-ink-600 hover:bg-white"
-                    >
-                      <Icon name="plus" size={11} /> 하위
-                    </button>
-                  )}
-                  {!leaf && !selected && !compact && (
-                    <div className="mt-0.5 text-[9px] font-semibold opacity-50">묶음</div>
-                  )}
-                </div>
-              </foreignObject>
-            );
+            return renderBucket(n);
           })}
 
           {edges.map((e, i) => {
             const reinvest = e.fromId === "__pool__" && e.toId === "__income__";
             const d = edgePath(e, reinvest);
-            const pid = e.id;
             const stroke =
               e.tone === "spend"
                 ? "var(--color-spend-500)"
-                : e.tone === "dashed"
-                  ? "var(--color-brand-300)"
-                  : "var(--color-brand-400)";
+                : e.tone === "income"
+                  ? "var(--color-brand-400)"
+                  : e.tone === "dashed"
+                    ? "var(--color-brand-300)"
+                    : "var(--color-brand-400)";
             return (
               <g key={e.id} style={{ pointerEvents: "none" }}>
                 <path
-                  id={pid}
+                  id={e.id}
                   d={d}
                   fill="none"
                   stroke={stroke}
-                  strokeWidth={e.tone === "dashed" ? 1.4 : linkWidth(e.ratio)}
+                  strokeWidth={e.tone === "dashed" ? 1.3 : linkWidth(e.ratio)}
                   strokeDasharray={e.tone === "dashed" ? "5 5" : undefined}
-                  opacity={e.tone === "spend" ? 0.95 : 0.85}
+                  opacity={0.9}
                 />
                 {animate && e.tone !== "dashed" && !drag && (
                   <>
                     <path
                       d={d}
                       fill="none"
-                      stroke={e.tone === "spend" ? "var(--color-spend-600)" : "var(--color-brand-500)"}
-                      strokeWidth="1.6"
+                      stroke={
+                        e.tone === "spend"
+                          ? "var(--color-spend-600)"
+                          : e.tone === "income"
+                            ? "var(--color-gold-400)"
+                            : "var(--color-brand-500)"
+                      }
+                      strokeWidth="1.5"
                       strokeDasharray="2 10"
                       strokeLinecap="round"
                       className="flow-link"
                       opacity="0.9"
                     />
-                    {(e.ratio > 0 || e.tone === "spend") && (
-                      <circle
-                        r="3.2"
-                        fill={e.tone === "spend" ? "var(--color-spend-500)" : "var(--color-gold-400)"}
+                    <circle
+                      r="3"
+                      fill={
+                        e.tone === "spend"
+                          ? "var(--color-spend-500)"
+                          : e.tone === "income"
+                            ? "var(--color-gold-400)"
+                            : "var(--color-gold-400)"
+                      }
+                    >
+                      <animateMotion
+                        dur={`${2.2 - Math.min(1, Math.max(e.ratio, 15) / 120)}s`}
+                        repeatCount="indefinite"
+                        begin={`${(i % 5) * 0.25}s`}
                       >
-                        <animateMotion
-                          dur={`${2.2 - Math.min(1, Math.max(e.ratio, 20) / 120)}s`}
-                          repeatCount="indefinite"
-                          begin={`${(i % 5) * 0.25}s`}
-                        >
-                          <mpath href={`#${pid}`} />
-                        </animateMotion>
-                      </circle>
-                    )}
+                        <mpath href={`#${e.id}`} />
+                      </animateMotion>
+                    </circle>
                   </>
                 )}
               </g>
@@ -519,8 +615,7 @@ export function EngineCanvas({
       </div>
 
       <p className="border-t border-ink-100 px-3 py-2 text-[11px] text-ink-400">
-        드래그로 위치 조절 · 클릭으로 선택 ·「하위」로 가지 추가 · × 삭제
-        {hasCustomLayout ? " · 자동 정렬로 원위치" : ""}
+        드래그로 위치 · 월수입 클릭 시 묶음 추가 · 수입 항목은 왼쪽에서 합산 · 지출은 아래 밴드
       </p>
 
       {quickAddParent !== undefined && (

@@ -24,9 +24,17 @@ export const INCOME_SOURCE_META: Record<
 };
 
 export interface IncomeSource {
+  /** 캔버스 노드 식별 (없으면 로드 시 부여) */
+  id?: string;
   type: IncomeSourceType;
   /** 월 금액(만원) */
   monthly: number;
+  /** 표시 이름 오버라이드 */
+  name?: string;
+  /** 같은 레이어 정렬 */
+  position?: number;
+  canvasX?: number | null;
+  canvasY?: number | null;
 }
 
 /** A. 비전보드 장면 카드 */
@@ -113,6 +121,12 @@ export interface Bucket {
 
 export interface EngineConfig {
   buckets: Bucket[];
+  /** 월수입 허브 캔버스 위치 */
+  incomeCanvasX?: number | null;
+  incomeCanvasY?: number | null;
+  /** 모인자산(중간 집계) 캔버스 위치 */
+  poolCanvasX?: number | null;
+  poolCanvasY?: number | null;
 }
 
 export interface Scenario {

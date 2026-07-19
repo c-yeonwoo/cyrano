@@ -33,8 +33,16 @@ export function DiagnosisPanel({ showResult = true }: { showResult?: boolean }) 
 
   const patch = (p: Partial<FinancialSnapshot>) => setSnapshot({ ...s, ...p });
   const setIncome = (type: IncomeSourceType, monthly: number) => {
+    const existing = s.incomeSources.find((i) => i.type === type);
     const others = s.incomeSources.filter((i) => i.type !== type);
-    patch({ incomeSources: [...others, { type, monthly }] });
+    patch({
+      incomeSources: [
+        ...others,
+        existing
+          ? { ...existing, monthly }
+          : { id: `inc_${type}`, type, monthly, position: others.length },
+      ],
+    });
   };
 
   const result = computeStage(s);

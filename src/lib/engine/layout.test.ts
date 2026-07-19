@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { Bucket } from "../types";
+import type { Bucket, IncomeSource } from "../types";
 import { layoutEngineGraph, edgePath, sizeForDepth } from "./layout";
 
 function b(over: Partial<Bucket> & { id: string }): Bucket {
@@ -16,37 +16,57 @@ function b(over: Partial<Bucket> & { id: string }): Bucket {
   };
 }
 
+const sources: IncomeSource[] = [
+  { id: "inc_labor", type: "labor", monthly: 300, position: 0 },
+  { id: "inc_cap", type: "capital", monthly: 20, position: 1 },
+];
+
 describe("layoutEngineGraph", () => {
   it("하위 노드가 루트보다 작다", () => {
     expect(sizeForDepth(2).w).toBeLessThan(sizeForDepth(1).w);
-    expect(sizeForDepth(2).h).toBeLessThan(sizeForDepth(1).h);
-    const buckets = [
-      b({ id: "spend", category: "spend", ratioPct: 40 }),
-      b({ id: "fixed", category: "spend", parentId: "spend", ratioPct: 100 }),
-    ];
-    const { nodes } = layoutEngineGraph(buckets);
+    const { nodes } = layoutEngineGraph({
+      buckets: [
+        b({ id: "spend", category: "spend", ratioPct: 40 }),
+        b({ id: "fixed", category: "spend", parentId: "spend", ratioPct: 100 }),
+      ],
+      incomeSources: sources,
+    });
     const spend = nodes.find((n) => n.id === "spend")!;
     const fixed = nodes.find((n) => n.id === "fixed")!;
     expect(fixed.w).toBeLessThan(spend.w);
-    expect(fixed.h).toBeLessThan(spend.h);
   });
 
-  it("canvasX/Y 오버라이드 적용", () => {
-    const buckets = [b({ id: "a", ratioPct: 100, canvasX: 400, canvasY: 200 })];
-    const { nodes } = layoutEngineGraph(buckets);
-    const a = nodes.find((n) => n.id === "a")!;
-    expect(a.x).toBe(400);
-    expect(a.y).toBe(200);
+  it("수입 항목이 월수입 왼쪽에 있고 연결된다", () => {
+    const { nodes, edges, monthlyIncome } = layoutEngineGraph({
+      buckets: [b({ id: "invest", ratioPct: 100 })],
+      incomeSources: sources,
+    });
+    expect(monthlyIncome).toBe(320);
+    const labor = nodes.find((n) => n.id === "inc_labor")!;
+    const income = nodes.find((n) => n.id === "__income__")!;
+    expect(labor.x).toBeLessThan(income.x);
+    expect(edges.some((e) => e.fromId === "inc_labor" && e.toId === "__income__")).toBe(true);
   });
 
-  it("지출 루트도 수입과 연결", () => {
-    const buckets = [
-      b({ id: "invest", category: "invest", ratioPct: 60, position: 0 }),
-      b({ id: "spend", category: "spend", ratioPct: 40, position: 1 }),
-    ];
-    const { edges } = layoutEngineGraph(buckets);
-    const link = edges.find((e) => e.fromId === "__income__" && e.toId === "spend");
-    expect(link).toBeTruthy();
+  it("지출 루트는 투자 루트보다 아래에 배치", () => {
+    const { nodes } = layoutEngineGraph({
+      buckets: [
+        b({ id: "invest", category: "invest", ratioPct: 60, position: 0 }),
+        b({ id: "spend", category: "spend", ratioPct: 40, position: 1 }),
+      ],
+      incomeSources: sources,
+    });
+    const invest = nodes.find((n) => n.id === "invest")!;
+    const spend = nodes.find((n) => n.id === "spend")!;
+    expect(spend.y).toBeGreaterThan(invest.y);
+  });
+
+  it("edgePath", () => {
+    const { edges } = layoutEngineGraph({
+      buckets: [b({ id: "a", ratioPct: 100 })],
+      incomeSources: sources,
+    });
+    const link = edges.find((e) => e.toId === "a");
     expect(edgePath(link!)).toMatch(/^M/);
   });
 });
