@@ -33,6 +33,11 @@ import {
   PoolHubInspector,
   SourceInspector,
 } from "./HubInspector";
+import {
+  SpendRatioSuggestionBar,
+  SpendRatioSuggestionInline,
+  useSpendSuggestionPending,
+} from "./SpendRatioSuggestion";
 
 export function EngineBuilder() {
   const snapshot = useProfile((s) => s.profile.snapshot) ?? DEFAULT_SNAPSHOT;
@@ -82,6 +87,7 @@ export function EngineBuilder() {
   const monthlyIncome = sumMonthlyIncome(incomeSources);
   const sum = ratioSum(buckets);
   const sumOk = Math.round(sum) === 100;
+  const spendSuggestionPending = useSpendSuggestionPending();
 
   const patchSources = (next: typeof incomeSources) => {
     setSnapshot({ ...snapshot, incomeSources: next });
@@ -259,6 +265,7 @@ export function EngineBuilder() {
 
         {/* 흐름도 + 결과 */}
         <div className="min-w-0 flex-1 space-y-4">
+          {buckets.length > 0 && <SpendRatioSuggestionBar />}
           <EngineCanvas
             buckets={buckets}
             engine={engine}
@@ -267,6 +274,7 @@ export function EngineBuilder() {
             onSelect={setSelectedId}
             onAdd={addBucket}
             onRequestDelete={requestDelete}
+            spendSuggestionPending={spendSuggestionPending}
             onMoveNode={(id, x, y) => {
               if (id === "__income__") {
                 setEngine({ ...engine, incomeCanvasX: x, incomeCanvasY: y });

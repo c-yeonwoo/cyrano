@@ -154,6 +154,7 @@ export function EngineCanvas({
   onMoveNode,
   onResetLayout,
   onRecommend,
+  spendSuggestionPending = false,
 }: {
   buckets: Bucket[];
   engine: EngineConfig;
@@ -165,6 +166,8 @@ export function EngineCanvas({
   onMoveNode: (id: string, x: number, y: number) => void;
   onResetLayout: () => void;
   onRecommend: () => void;
+  /** Phase B — 지출 루트에 실측 제안 배지 */
+  spendSuggestionPending?: boolean;
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -337,6 +340,14 @@ export function EngineCanvas({
               >
                 {b.isLocked && <Icon name="lock" size={compact ? 10 : 11} className="text-locked" />}
                 <span className="truncate">{b.name}</span>
+                {spendSuggestionPending &&
+                  b.category === "spend" &&
+                  !b.parentId &&
+                  !compact && (
+                    <span className="ml-0.5 shrink-0 rounded bg-white/80 px-1 py-px text-[8px] font-bold text-spend-700">
+                      실측
+                    </span>
+                  )}
               </div>
               <div
                 className={`mt-0.5 flex flex-wrap gap-x-1.5 opacity-80 ${

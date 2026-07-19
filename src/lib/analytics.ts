@@ -22,7 +22,8 @@ export type AnalyticsEvent =
   | "lead_cta_clicked"
   | "spend_logged"
   | "budget_pace_viewed"
-  | "spend_applied_to_engine";
+  | "spend_applied_to_engine"
+  | "spend_ratio_suggestion_applied";
 
 type Props = Record<string, string | number | boolean | null | undefined>;
 
@@ -182,4 +183,7 @@ export const ANALYTICS_EVENTS: AnalyticsEvent[] = [
   "weekly_checkin",
   "lead_cta_clicked",
   "spend_logged",
+  "budget_pace_viewed",
+  "spend_applied_to_engine",
+  "spend_ratio_suggestion_applied",
 ];
