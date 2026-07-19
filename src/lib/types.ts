@@ -106,6 +106,9 @@ export interface Bucket {
   linkedTool?: string; // v2 cross-sell
   /** 같은 부모 아래 정렬 순서 */
   position: number;
+  /** 캔버스 수동 위치(SVG 좌표). 없으면 자동 레이아웃 */
+  canvasX?: number | null;
+  canvasY?: number | null;
 }
 
 export interface EngineConfig {

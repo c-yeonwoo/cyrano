@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Bucket, BucketCategory } from "@/lib/types";
 import {
   GROUP_PRESETS,
@@ -101,6 +101,17 @@ function QuickAddMenu({
   );
 }
 
+type DragState = {
+  id: string;
+  grabDX: number;
+  grabDY: number;
+  x: number;
+  y: number;
+  originX: number;
+  originY: number;
+  moved: boolean;
+};
+
 export function EngineCanvas({
   buckets,
   monthlyIncome,
@@ -108,6 +119,8 @@ export function EngineCanvas({
   onSelect,
   onAdd,
   onRequestDelete,
+  onMoveNode,
+  onResetLayout,
   onRecommend,
 }: {
   buckets: Bucket[];
@@ -116,12 +129,16 @@ export function EngineCanvas({
   onSelect: (id: string | null) => void;
   onAdd: (b: Bucket) => void;
   onRequestDelete: (id: string) => void;
+  onMoveNode: (id: string, x: number, y: number) => void;
+  onResetLayout: () => void;
   onRecommend: () => void;
 }) {
+  const svgRef = useRef<SVGSVGElement>(null);
+  const dragRef = useRef<DragState | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [animate, setAnimate] = useState(false);
   const [quickAddParent, setQuickAddParent] = useState<string | null | undefined>(undefined);
-  // undefined = closed, null = under income, string = under bucket
+  const [drag, setDrag] = useState<DragState | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -131,10 +148,63 @@ export function EngineCanvas({
     return () => mq.removeEventListener("change", on);
   }, []);
 
-  // 선택과 무관 — 인스펙터/고스트로 뷰박스 크기가 흔들리지 않게
-  const { nodes, edges, width, height } = useMemo(() => layoutEngineGraph(buckets), [buckets]);
+  const clientToSvg = (clientX: number, clientY: number) => {
+    const svg = svgRef.current;
+    if (!svg) return { x: 0, y: 0 };
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return { x: 0, y: 0 };
+    const pt = svg.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    const p = pt.matrixTransform(ctm.inverse());
+    return { x: p.x, y: p.y };
+  };
+
+  // 드래그 중 window에서 추적 — foreignObject 캡처 이슈 회피
+  useEffect(() => {
+    if (!drag) return;
+    const onMove = (e: PointerEvent) => {
+      const cur = dragRef.current;
+      if (!cur) return;
+      const p = clientToSvg(e.clientX, e.clientY);
+      const x = p.x - cur.grabDX;
+      const y = p.y - cur.grabDY;
+      const moved = cur.moved || Math.hypot(x - cur.originX, y - cur.originY) > 4;
+      const next = { ...cur, x, y, moved };
+      dragRef.current = next;
+      setDrag(next);
+    };
+    const onUp = () => {
+      const cur = dragRef.current;
+      dragRef.current = null;
+      setDrag(null);
+      if (!cur) return;
+      if (cur.moved) onMoveNode(cur.id, Math.round(cur.x), Math.round(cur.y));
+      else onSelect(cur.id);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- start once per drag id
+  }, [drag?.id]);
+
+  const layoutBuckets = useMemo(() => {
+    if (!drag) return buckets;
+    return buckets.map((b) =>
+      b.id === drag.id ? { ...b, canvasX: drag.x, canvasY: drag.y } : b,
+    );
+  }, [buckets, drag]);
+
+  const { nodes, edges, width, height } = useMemo(
+    () => layoutEngineGraph(layoutBuckets),
+    [layoutBuckets],
+  );
 
   const crumb = selectedId ? pathToRoot(selectedId, buckets) : [];
+  const hasCustomLayout = buckets.some((b) => b.canvasX != null || b.canvasY != null);
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -203,7 +273,6 @@ export function EngineCanvas({
         dragOver ? "border-2 border-dashed border-brand-400 bg-brand-50/40" : "border-ink-200"
       }`}
     >
-      {/* 브레드크럼 — 마인드맵 포커스 */}
       <div className="flex flex-wrap items-center gap-1 border-b border-ink-100 px-3 py-2 text-xs">
         <button
           type="button"
@@ -226,13 +295,25 @@ export function EngineCanvas({
             </button>
           </span>
         ))}
-        <span className="ml-auto tnum font-semibold text-ink-500">월 {monthlyIncome}만</span>
+        <div className="ml-auto flex items-center gap-2">
+          {hasCustomLayout && (
+            <button
+              type="button"
+              onClick={onResetLayout}
+              className="rounded-md px-1.5 py-0.5 font-semibold text-ink-500 hover:bg-ink-100 hover:text-ink-700"
+            >
+              자동 정렬
+            </button>
+          )}
+          <span className="tnum font-semibold text-ink-500">월 {monthlyIncome}만</span>
+        </div>
       </div>
 
       <div className="overflow-x-auto p-2">
         <svg
+          ref={svgRef}
           viewBox={`0 0 ${width} ${height}`}
-          className="w-full min-w-[720px]"
+          className="w-full min-w-[720px] touch-none"
           style={{ height: Math.min(520, Math.max(360, height * 0.55)), minHeight: 360 }}
           preserveAspectRatio="xMidYMid meet"
         >
@@ -247,7 +328,6 @@ export function EngineCanvas({
             배당·이자 등 → 다시 수입으로
           </text>
 
-          {/* 노드 먼저 — 연결선은 위에 그려 지출↔수입 선이 가려지지 않게 */}
           {nodes.map((n) => {
             if (n.kind === "income") {
               return (
@@ -290,34 +370,64 @@ export function EngineCanvas({
             const month = monthlyManwon(b, buckets, monthlyIncome);
             const selected = b.id === selectedId;
             const parentLabel = b.parentId ? "상위" : "수입";
+            const compact = n.depth >= 2;
+            const dragging = drag?.id === b.id;
 
             return (
               <foreignObject key={n.id} x={n.x} y={n.y} width={n.w} height={n.h}>
                 <div
                   role="button"
                   tabIndex={0}
-                  onClick={() => onSelect(b.id)}
+                  onPointerDown={(e) => {
+                    if ((e.target as HTMLElement).closest("button")) return;
+                    e.preventDefault();
+                    const p = clientToSvg(e.clientX, e.clientY);
+                    const next: DragState = {
+                      id: b.id,
+                      grabDX: p.x - n.x,
+                      grabDY: p.y - n.y,
+                      x: n.x,
+                      y: n.y,
+                      originX: n.x,
+                      originY: n.y,
+                      moved: false,
+                    };
+                    dragRef.current = next;
+                    setDrag(next);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
                       onSelect(b.id);
                     }
                   }}
-                  className={`group flex h-full w-full cursor-pointer flex-col justify-center rounded-xl border px-2.5 py-1.5 text-left transition-shadow ${CAT_NODE[b.category]} ${
+                  className={`group flex h-full w-full select-none flex-col justify-center border text-left transition-shadow ${
+                    compact ? "rounded-lg px-2 py-1" : "rounded-xl px-2.5 py-1.5"
+                  } ${CAT_NODE[b.category]} ${
                     selected ? "ring-2 ring-brand-500 shadow-sm" : "hover:shadow-sm"
-                  }`}
+                  } ${dragging ? "cursor-grabbing opacity-90 shadow-md" : "cursor-grab"}`}
                 >
                   <div className="flex items-start gap-1">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-0.5 text-[13px] font-bold leading-tight">
-                        {b.isLocked && <Icon name="lock" size={11} className="text-locked" />}
+                      <div
+                        className={`flex items-center gap-0.5 font-bold leading-tight ${
+                          compact ? "text-[11px]" : "text-[13px]"
+                        }`}
+                      >
+                        {b.isLocked && <Icon name="lock" size={compact ? 10 : 11} className="text-locked" />}
                         <span className="truncate">{b.name}</span>
                       </div>
-                      <div className="mt-0.5 flex flex-wrap gap-x-1.5 text-[10px] opacity-80">
+                      <div
+                        className={`mt-0.5 flex flex-wrap gap-x-1.5 opacity-80 ${
+                          compact ? "text-[9px]" : "text-[10px]"
+                        }`}
+                      >
                         <span className="tnum font-semibold">
                           {parentLabel} {b.ratioPct}%
                         </span>
-                        <span className="tnum">전체 {ofTotal.toFixed(1).replace(/\.0$/, "")}%</span>
+                        {!compact && (
+                          <span className="tnum">전체 {ofTotal.toFixed(1).replace(/\.0$/, "")}%</span>
+                        )}
                         <span className="tnum font-semibold">월 {month}만</span>
                       </div>
                     </div>
@@ -330,7 +440,7 @@ export function EngineCanvas({
                       }}
                       className="shrink-0 rounded p-0.5 text-ink-400 opacity-0 hover:text-red-500 group-hover:opacity-100"
                     >
-                      <Icon name="x" size={12} />
+                      <Icon name="x" size={compact ? 11 : 12} />
                     </button>
                   </div>
                   {selected && (
@@ -345,7 +455,7 @@ export function EngineCanvas({
                       <Icon name="plus" size={11} /> 하위
                     </button>
                   )}
-                  {!leaf && !selected && (
+                  {!leaf && !selected && !compact && (
                     <div className="mt-0.5 text-[9px] font-semibold opacity-50">묶음</div>
                   )}
                 </div>
@@ -374,7 +484,7 @@ export function EngineCanvas({
                   strokeDasharray={e.tone === "dashed" ? "5 5" : undefined}
                   opacity={e.tone === "spend" ? 0.95 : 0.85}
                 />
-                {animate && e.tone !== "dashed" && (
+                {animate && e.tone !== "dashed" && !drag && (
                   <>
                     <path
                       d={d}
@@ -387,7 +497,10 @@ export function EngineCanvas({
                       opacity="0.9"
                     />
                     {(e.ratio > 0 || e.tone === "spend") && (
-                      <circle r="3.2" fill={e.tone === "spend" ? "var(--color-spend-500)" : "var(--color-gold-400)"}>
+                      <circle
+                        r="3.2"
+                        fill={e.tone === "spend" ? "var(--color-spend-500)" : "var(--color-gold-400)"}
+                      >
                         <animateMotion
                           dur={`${2.2 - Math.min(1, Math.max(e.ratio, 20) / 120)}s`}
                           repeatCount="indefinite"
@@ -406,7 +519,8 @@ export function EngineCanvas({
       </div>
 
       <p className="border-t border-ink-100 px-3 py-2 text-[11px] text-ink-400">
-        노드를 눌러 포커스 · 하위 추가/왼쪽 팔레트로 가지를 뻗으세요 · ×로 삭제
+        드래그로 위치 조절 · 클릭으로 선택 ·「하위」로 가지 추가 · × 삭제
+        {hasCustomLayout ? " · 자동 정렬로 원위치" : ""}
       </p>
 
       {quickAddParent !== undefined && (

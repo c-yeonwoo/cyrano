@@ -35,6 +35,7 @@ export function EngineBuilder() {
   const addBucket = useProfile((s) => s.addBucket);
   const updateBucket = useProfile((s) => s.updateBucket);
   const removeBucket = useProfile((s) => s.removeBucket);
+  const setBuckets = useProfile((s) => s.setBuckets);
   const setEngine = useProfile((s) => s.setEngine);
   const saveScenario = useProfile((s) => s.saveScenario);
   const loadScenario = useProfile((s) => s.loadScenario);
@@ -214,6 +215,10 @@ export function EngineBuilder() {
             onSelect={setSelectedId}
             onAdd={addBucket}
             onRequestDelete={requestDelete}
+            onMoveNode={(id, x, y) => updateBucket(id, { canvasX: x, canvasY: y })}
+            onResetLayout={() =>
+              setBuckets(buckets.map((b) => ({ ...b, canvasX: null, canvasY: null })))
+            }
             onRecommend={() => {
               setEngine(suggestEngineFromSnapshot(snapshot));
               track("engine_recommend_applied", { source: "canvas_empty" });
