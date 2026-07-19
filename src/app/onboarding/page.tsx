@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useProfile } from "@/lib/store/useProfile";
 import { HydrationGate } from "@/components/HydrationGate";
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui";
 import { Icon, type IconName } from "@/components/Icon";
 import { Logo } from "@/components/Logo";
 import { clsx } from "@/lib/clsx";
+import { track, trackOnboardingStartedOnce } from "@/lib/analytics";
 
 const STEPS: { key: string; label: string; icon: IconName }[] = [
   { key: "goals", label: "목표·비전", icon: "target" },
@@ -23,9 +24,24 @@ function OnboardingInner() {
   const [step, setStep] = useState(0);
   const completeOnboarding = useProfile((s) => s.completeOnboarding);
 
-  const finish = () => {
+  useEffect(() => {
+    trackOnboardingStartedOnce();
+  }, []);
+
+  useEffect(() => {
+    track("onboarding_step_viewed", { step: STEPS[step].key, step_index: step });
+  }, [step]);
+
+  const finish = (skipped: boolean) => {
+    if (skipped) track("onboarding_skipped", { from_step: STEPS[step].key });
+    else track("onboarding_completed", { last_step: STEPS[step].key });
     completeOnboarding();
     router.push("/home");
+  };
+
+  const goNext = () => {
+    track("onboarding_step_completed", { step: STEPS[step].key, step_index: step });
+    setStep((s) => s + 1);
   };
 
   return (
@@ -34,7 +50,7 @@ function OnboardingInner() {
       <div className="mb-6 flex items-center justify-between">
         <Logo />
         <button
-          onClick={finish}
+          onClick={() => finish(true)}
           className="flex items-center gap-1 text-xs text-ink-400 hover:text-ink-600"
         >
           나중에 채우기 · 건너뛰기 <Icon name="arrow-right" size={13} />
@@ -102,12 +118,12 @@ function OnboardingInner() {
           이전
         </Button>
         {step < STEPS.length - 1 ? (
-          <Button onClick={() => setStep((s) => s + 1)}>
+          <Button onClick={goNext}>
             {step === 0 ? "이 목표로 시작하기" : "이 데이터로 엔진 구성"}
             <Icon name="arrow-right" size={15} />
           </Button>
         ) : (
-          <Button onClick={finish}>
+          <Button onClick={() => finish(false)}>
             완료 · 홈으로 <Icon name="arrow-right" size={15} />
           </Button>
         )}

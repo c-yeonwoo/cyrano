@@ -5,6 +5,7 @@ import { useProfile } from "@/lib/store/useProfile";
 import { useDerived } from "@/lib/useDerived";
 import { emptyTracking } from "@/lib/types";
 import { computeStreak, hasCheckedInThisWeek } from "@/lib/tracking";
+import { track } from "@/lib/analytics";
 import { Card, Button, SectionTitle, TextInput, EmptyState } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 
@@ -22,10 +23,12 @@ export function TrackingPanel() {
   const checkedThisWeek = hasCheckedInThisWeek(tracking.checkIns);
   const doneCount = tracking.actions.filter((a) => a.done).length;
 
-  const add = () => {
-    if (!text.trim()) return;
-    addAction(text);
-    setText("");
+  const add = (source: "manual" | "next_step" = "manual", value?: string) => {
+    const v = (value ?? text).trim();
+    if (!v) return;
+    addAction(v);
+    track("action_added", { source });
+    if (!value) setText("");
   };
 
   return (
@@ -51,7 +54,10 @@ export function TrackingPanel() {
           </div>
           <Button
             className="mt-4 w-full"
-            onClick={weeklyCheckIn}
+            onClick={() => {
+              weeklyCheckIn();
+              if (!checkedThisWeek) track("weekly_checkin", { streak_before: streak });
+            }}
             disabled={checkedThisWeek}
           >
             {checkedThisWeek ? "이번 주 점검 완료됨" : "이번 주 점검 완료"}
@@ -68,7 +74,7 @@ export function TrackingPanel() {
             <Button
               variant="outline"
               className="mt-3 border-invest-500/40 text-invest-700"
-              onClick={() => addAction(stage.nextStep)}
+              onClick={() => add("next_step", stage.nextStep)}
             >
               <Icon name="plus" size={14} /> 실천 목록에 추가
             </Button>
@@ -87,7 +93,7 @@ export function TrackingPanel() {
             onChange={setText}
             placeholder="예: 비상금 자동이체 50만원 걸기"
           />
-          <Button onClick={add} disabled={!text.trim()}>
+          <Button onClick={() => add("manual")} disabled={!text.trim()}>
             추가
           </Button>
         </div>
@@ -106,7 +112,11 @@ export function TrackingPanel() {
                 className="flex items-center gap-3 rounded-xl border border-ink-200 bg-white px-3 py-2.5"
               >
                 <button
-                  onClick={() => toggleAction(a.id)}
+                  onClick={() => {
+                    const becomingDone = !a.done;
+                    toggleAction(a.id);
+                    if (becomingDone) track("action_completed");
+                  }}
                   aria-label="완료 토글"
                   className={
                     "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border " +

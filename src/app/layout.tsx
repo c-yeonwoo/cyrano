@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Nanum_Myeongjo } from "next/font/google";
+import { AnalyticsProvider } from "@/components/AnalyticsProvider";
 import "./globals.css";
 
 const display = Nanum_Myeongjo({
@@ -22,7 +23,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ko" className={display.variable}>
-      <body>{children}</body>
+      <body>
+        <AnalyticsProvider>{children}</AnalyticsProvider>
+      </body>
     </html>
   );
 }
