@@ -18,6 +18,7 @@ import { emptyProfile, ensureSpending } from "./defaults";
 import { seedSpending } from "../spending/seed";
 import { hasCheckedInThisWeek } from "../tracking";
 import { collectDescendantIds } from "../engine/tree";
+import { normalizeIncomeSources } from "../income";
 
 const MAX_SCENARIOS = 5;
 
@@ -40,8 +41,18 @@ function ensureTracking(p: Profile): Tracking {
 }
 
 function migrateProfile(p: Profile): Profile {
-  if (p.spending) return p;
-  return { ...p, spending: seedSpending() };
+  let next = p;
+  if (!next.spending) next = { ...next, spending: seedSpending() };
+  if (next.snapshot?.incomeSources) {
+    next = {
+      ...next,
+      snapshot: {
+        ...next.snapshot,
+        incomeSources: normalizeIncomeSources(next.snapshot.incomeSources),
+      },
+    };
+  }
+  return next;
 }
 
 interface ProfileState {
@@ -92,16 +103,33 @@ export const useProfile = create<ProfileState>()(
       hasHydrated: false,
 
       setVision: (v) => set((st) => ({ profile: touch({ ...st.profile, vision: v }) })),
-      setSnapshot: (s) => set((st) => ({ profile: touch({ ...st.profile, snapshot: s }) })),
+      setSnapshot: (s) =>
+        set((st) => ({
+          profile: touch({
+            ...st.profile,
+            snapshot: {
+              ...s,
+              incomeSources: normalizeIncomeSources(s.incomeSources),
+            },
+          }),
+        })),
       setEngine: (e) => set((st) => ({ profile: touch({ ...st.profile, engine: e }) })),
       setBuckets: (b) =>
-        set((st) => ({ profile: touch({ ...st.profile, engine: { buckets: b } }) })),
+        set((st) => ({
+          profile: touch({
+            ...st.profile,
+            engine: { ...st.profile.engine, buckets: b },
+          }),
+        })),
 
       addBucket: (b) =>
         set((st) => ({
           profile: touch({
             ...st.profile,
-            engine: { buckets: [...st.profile.engine.buckets, b] },
+            engine: {
+              ...st.profile.engine,
+              buckets: [...st.profile.engine.buckets, b],
+            },
           }),
         })),
 
@@ -110,6 +138,7 @@ export const useProfile = create<ProfileState>()(
           profile: touch({
             ...st.profile,
             engine: {
+              ...st.profile.engine,
               buckets: st.profile.engine.buckets.map((x) =>
                 x.id === id ? { ...x, ...patch } : x,
               ),
@@ -124,6 +153,7 @@ export const useProfile = create<ProfileState>()(
             profile: touch({
               ...st.profile,
               engine: {
+                ...st.profile.engine,
                 buckets: st.profile.engine.buckets.filter((x) => !drop.has(x.id)),
               },
             }),

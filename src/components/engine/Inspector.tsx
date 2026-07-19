@@ -19,6 +19,7 @@ export function Inspector({
   onChange,
   onDelete,
   onDuplicate,
+  onMoveSibling,
 }: {
   bucket: Bucket;
   all: Bucket[];
@@ -26,6 +27,8 @@ export function Inspector({
   onChange: (patch: Partial<Bucket>) => void;
   onDelete: () => void;
   onDuplicate: () => void;
+  /** 같은 레이어(형제) 순서 — SDUI 빌더식 */
+  onMoveSibling?: (dir: -1 | 1) => void;
 }) {
   const isInvest = bucket.category === "invest";
   const meta = CATEGORY_META[bucket.category];
@@ -140,6 +143,20 @@ export function Inspector({
         <div className="flex items-center justify-between text-xs text-ink-400">
           <span>연결 도구</span>
           <span>{bucket.linkedTool}</span>
+        </div>
+      )}
+
+      {onMoveSibling && (
+        <div>
+          <div className="mb-1.5 text-xs font-medium text-ink-500">같은 레이어 순서</div>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex-1" onClick={() => onMoveSibling(-1)}>
+              위로
+            </Button>
+            <Button variant="outline" className="flex-1" onClick={() => onMoveSibling(1)}>
+              아래로
+            </Button>
+          </div>
         </div>
       )}
 
