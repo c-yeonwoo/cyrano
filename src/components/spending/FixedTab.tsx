@@ -62,17 +62,17 @@ export function FixedTab() {
               <span className="ml-2 text-sm font-medium text-ink-400">/월</span>
             </div>
             <p className="mt-2 text-xs text-ink-500">
-              결제됨 {formatWon(parts.paidWon)}
+              청구일 지남 {formatWon(parts.paidWon)}
               <span className="mx-1.5 text-ink-300">·</span>
-              예정 {formatWon(parts.upcomingWon)}
+              남음 {formatWon(parts.upcomingWon)}
               {pct != null ? (
-                <span className="text-ink-400"> · 월 소득 대비 {pct.toFixed(0)}%</span>
+                <span className="text-ink-400"> · 소득의 {pct.toFixed(0)}%</span>
               ) : null}
             </p>
           </div>
           <p className="max-w-xs text-xs leading-relaxed text-ink-400">
-            오늘({today.getMonth() + 1}/{today.getDate()}) 기준으로 결제일이 지났으면 결제됨,
-            아직이면 예정이에요.
+            오늘({today.getMonth() + 1}/{today.getDate()}) 기준 · 청구일이 지났으면 「지남」,
+            아직이면 「남음」.
           </p>
         </div>
       </Card>
@@ -177,7 +177,7 @@ function FixedRow({
               : "bg-amber-50 text-amber-800",
           )}
         >
-          {paid ? "결제됨" : "예정"}
+          {paid ? "지남" : "남음"}
         </span>
       </td>
       <td className="px-3 py-2">

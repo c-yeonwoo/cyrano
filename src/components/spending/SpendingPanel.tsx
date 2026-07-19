@@ -22,7 +22,11 @@ export function SpendingPanel({ initialTab = "summary" }: { initialTab?: TabKey 
   return (
     <div className="space-y-5">
       <div>
-        <PageHeader icon="wallet" title="지출" desc="고정비와 변동비를 나눠 보고, 예산은 변동에만 걸어요." />
+        <PageHeader
+          icon="wallet"
+          title="지출"
+          desc="기록과 예산은 여기서. 자산 설계는 계획 비중을 잡을 때 참고해요."
+        />
         <div className="mt-4 flex gap-1 border-b border-ink-200">
           {TABS.map((t) => (
             <button

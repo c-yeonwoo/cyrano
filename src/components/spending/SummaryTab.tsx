@@ -51,47 +51,47 @@ export function SummaryTab() {
 
   return (
     <div className="space-y-5">
-      {/* 총지출 히어로 — 변동 + 결제된 고정만 */}
-      <section className="rounded-2xl border border-ink-200 bg-white p-5 md:p-6">
-        <div className="text-xs font-semibold tracking-wide text-ink-400">
-          {monthIndex + 1}월 지출 총합 · 오늘까지
-        </div>
-        <div className="mt-2 flex flex-wrap items-baseline gap-2">
-          <span className="tnum text-3xl font-extrabold tracking-tight text-ink-900">
-            {formatWon(totalSpend)}
-          </span>
-          {totalIncomePct != null && (
-            <span className="text-sm text-ink-400">소득 대비 {totalIncomePct.toFixed(0)}%</span>
-          )}
-        </div>
-        <p className="mt-1 text-xs text-ink-500">
-          결제된 고정 {formatWon(fixedPaid)} + 변동 {formatWon(variableSpent)}
-        </p>
-        <div className="mt-4 flex h-2.5 overflow-hidden rounded-full bg-ink-100">
-          {totalSpend > 0 ? (
-            <>
-              <div
-                className="bg-brand-400 transition-all"
-                style={{ width: `${fixedShare}%` }}
-                title="결제된 고정"
-              />
-              <div
-                className="bg-gold-400 transition-all"
-                style={{ width: `${variableShare}%` }}
-                title="변동"
-              />
-            </>
-          ) : null}
-        </div>
-        <div className="mt-2 flex flex-wrap gap-4 text-xs text-ink-500">
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-brand-400" />
-            결제된 고정 {fixedShare.toFixed(0)}%
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-gold-400" />
-            변동 {variableShare.toFixed(0)}%
-          </span>
+      {/* 요약 히어로 — 이 페이지의 강조 포인트 */}
+      <section className="overflow-hidden rounded-2xl border border-brand-800/10 bg-brand-900 text-white">
+        <div className="p-5 md:p-6">
+          <div className="text-xs text-white/50">{monthIndex + 1}월 · 오늘까지 쓴 돈</div>
+          <div className="mt-2 flex flex-wrap items-baseline gap-2">
+            <span className="tnum text-3xl font-extrabold tracking-tight text-gold-400">
+              {formatWon(totalSpend)}
+            </span>
+            {totalIncomePct != null && (
+              <span className="text-sm text-white/45">소득의 {totalIncomePct.toFixed(0)}%</span>
+            )}
+          </div>
+          <p className="mt-1 text-xs text-white/45">
+            고정 {formatWon(fixedPaid)} + 변동 {formatWon(variableSpent)}
+          </p>
+          <div className="mt-5 flex h-2 overflow-hidden rounded-full bg-white/10">
+            {totalSpend > 0 ? (
+              <>
+                <div
+                  className="bg-white/50 transition-all"
+                  style={{ width: `${fixedShare}%` }}
+                  title="고정"
+                />
+                <div
+                  className="bg-gold-400 transition-all"
+                  style={{ width: `${variableShare}%` }}
+                  title="변동"
+                />
+              </>
+            ) : null}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-4 text-xs text-white/50">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-white/50" />
+              고정 {fixedShare.toFixed(0)}%
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-gold-400" />
+              변동 {variableShare.toFixed(0)}%
+            </span>
+          </div>
         </div>
       </section>
 
@@ -99,39 +99,37 @@ export function SummaryTab() {
 
       <div className="grid gap-3 sm:grid-cols-2">
         <Card className="!p-4">
-          <div className="text-xs font-semibold text-ink-400">결제된 고정비</div>
+          <div className="text-xs font-semibold text-ink-400">고정비</div>
           <div className="tnum mt-1 text-xl font-extrabold text-ink-900">
             {formatWon(fixedPaid)}
           </div>
           <p className="mt-1 text-xs text-ink-500">
             {fixedIncomePct != null
-              ? `소득 대비 ${fixedIncomePct.toFixed(0)}% · 결제일 기준`
-              : "결제일 기준 · 오늘까지 나간 것만"}
+              ? `소득의 ${fixedIncomePct.toFixed(0)}% · 청구일이 지난 항목`
+              : "청구일이 지난 항목만"}
           </p>
         </Card>
-        <Card className="!p-4 border-gold-200 bg-gold-50/40">
-          <div className="text-xs font-semibold text-gold-600">변동비</div>
+        <Card className="!p-4">
+          <div className="text-xs font-semibold text-ink-400">변동비</div>
           <div className="tnum mt-1 text-xl font-extrabold text-ink-900">
             {formatWon(variableSpent)}
           </div>
-          <p className="mt-1 text-xs text-ink-500">
-            예산·페이스는 <span className="font-semibold">변동지출</span> 탭에서
-          </p>
+          <p className="mt-1 text-xs text-ink-500">이번 달 기록한 금액</p>
         </Card>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">
         <Card>
-          <div className="mb-3 text-sm font-bold text-ink-800">카테고리별 고정지출</div>
+          <div className="mb-3 text-sm font-bold text-ink-800">카테고리별 고정</div>
           <DonutChart
             segments={fixedBreakdown}
             totalWon={fixedPaid}
             centerLabel="고정"
-            emptyLabel="아직 결제된 고정이 없어요"
+            emptyLabel="아직 청구된 고정이 없어요"
           />
         </Card>
         <Card>
-          <div className="mb-3 text-sm font-bold text-ink-800">카테고리별 변동지출</div>
+          <div className="mb-3 text-sm font-bold text-ink-800">카테고리별 변동</div>
           <DonutChart
             segments={variableBreakdown}
             totalWon={variableSpent}
@@ -179,20 +177,18 @@ export function SummaryTab() {
           )}
           {!peer && !pattern && (
             <Card className="!p-4 text-sm text-ink-500 lg:col-span-2">
-              변동 지출을 몇 건 기록하면 또래·패턴 진단이 나타납니다.
+              변동을 몇 건 기록하면 진단이 나타납니다.
             </Card>
           )}
         </div>
         <AssumptionNote>
-          또래 비교는 연령대 집단 평균의 <strong>예시·가정</strong>입니다. 개별 종목·매물 추천이
-          아닙니다.
+          또래 비교는 연령대 평균의 <strong>예시·가정</strong>입니다.
         </AssumptionNote>
       </div>
 
       {fixedUpcoming > 0 && (
         <p className="text-center text-xs text-ink-400">
-          이달 남은 고정지출 예정 {formatWon(fixedUpcoming)}
-          <span className="text-ink-300"> · 결제일 전 · 총합에는 아직 포함하지 않아요</span>
+          청구 전 고정 {formatWon(fixedUpcoming)}은 위 총합에 넣지 않았어요
         </p>
       )}
     </div>

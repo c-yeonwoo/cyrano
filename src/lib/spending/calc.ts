@@ -168,8 +168,8 @@ export function peerInsight(
   if (delta > 0) {
     return {
       tone: "warning",
-      title: `${band} 평균보다 식비 ${delta.toFixed(0)}%p 높아요`,
-      body: `이번 달 식비 비중 ${food.pct.toFixed(0)}%(가정 또래 ${peerFoodPct}%). 배달·외식을 한 끼만 줄여도 변동 예산에 여유가 생깁니다.`,
+      title: `식비 비중이 ${band} 평균보다 높아요`,
+      body: `이번 달 식비 ${food.pct.toFixed(0)}% · ${band} 가정 ${peerFoodPct}%. 배달·외식을 한 끼만 줄여도 여유가 생깁니다.`,
     };
   }
   return {
