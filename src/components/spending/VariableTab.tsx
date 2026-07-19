@@ -20,6 +20,7 @@ import { Button, Card, TextInput, NumberInput } from "@/components/ui";
 import { Icon } from "@/components/Icon";
 import { clsx } from "@/lib/clsx";
 import { track } from "@/lib/analytics";
+import { BudgetHero } from "./BudgetHero";
 
 type ViewMode = "calendar" | "list";
 
@@ -27,6 +28,7 @@ export function VariableTab() {
   const profile = useProfile((s) => s.profile);
   const addLog = useProfile((s) => s.addVariableLog);
   const removeLog = useProfile((s) => s.removeVariableLog);
+  const setBudget = useProfile((s) => s.setVariableBudget);
   const spending = selectSpending(profile);
 
   const now = new Date();
@@ -69,8 +71,21 @@ export function VariableTab() {
     });
   };
 
+  const monthSpent = sumLogs(monthLogs);
+
   return (
     <div className="space-y-4">
+      <BudgetHero
+        year={cursor.y}
+        monthIndex={cursor.m}
+        spentWon={monthSpent}
+        budgetWon={spending.monthlyVariableBudgetWon}
+        onSaveBudget={(won) => {
+          setBudget(won);
+          track("budget_pace_viewed", { source: "variable_tab" });
+        }}
+      />
+
       {/* 인라인 빠른 기록 바 */}
       <Card className="!p-3">
         <div className="mb-2 text-xs font-semibold tracking-wide text-ink-400 uppercase">
@@ -152,9 +167,6 @@ export function VariableTab() {
               {label}
             </button>
           ))}
-        </div>
-        <div className="tnum text-xs text-ink-400">
-          이번 달 변동 {formatWon(sumLogs(monthLogs))}
         </div>
       </div>
 

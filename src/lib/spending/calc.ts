@@ -27,16 +27,20 @@ export function dailyTotals(
   return map;
 }
 
-export function categoryBreakdown(logs: VariableLog[]): {
+export type CategorySegment = {
   category: SpendCategory;
   amountWon: number;
   pct: number;
-}[] {
+};
+
+function breakdownByCategory(
+  rows: { category: SpendCategory; amountWon: number }[],
+): CategorySegment[] {
   const totals = new Map<SpendCategory, number>();
   let sum = 0;
-  for (const l of logs) {
-    totals.set(l.category, (totals.get(l.category) ?? 0) + l.amountWon);
-    sum += l.amountWon;
+  for (const r of rows) {
+    totals.set(r.category, (totals.get(r.category) ?? 0) + r.amountWon);
+    sum += r.amountWon;
   }
   if (sum === 0) return [];
   return [...totals.entries()]
@@ -46,6 +50,14 @@ export function categoryBreakdown(logs: VariableLog[]): {
       pct: (amountWon / sum) * 100,
     }))
     .sort((a, b) => b.amountWon - a.amountWon);
+}
+
+export function categoryBreakdown(logs: VariableLog[]): CategorySegment[] {
+  return breakdownByCategory(logs);
+}
+
+export function fixedCategoryBreakdown(fixed: FixedExpense[]): CategorySegment[] {
+  return breakdownByCategory(fixed);
 }
 
 export function sumFixed(fixed: FixedExpense[]): number {

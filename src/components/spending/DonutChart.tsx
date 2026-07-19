@@ -6,21 +6,23 @@ import { formatWon } from "@/lib/spending/format";
 export function DonutChart({
   segments,
   totalWon,
+  centerLabel = "합계",
+  emptyLabel = "아직 기록이 없어요",
 }: {
   segments: { category: SpendCategory; amountWon: number; pct: number }[];
   totalWon: number;
+  centerLabel?: string;
+  emptyLabel?: string;
 }) {
-  const size = 160;
-  const stroke = 22;
+  const size = 148;
+  const stroke = 20;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   let offset = 0;
 
   if (segments.length === 0) {
     return (
-      <div className="flex h-40 items-center justify-center text-sm text-ink-400">
-        아직 변동 지출 기록이 없어요
-      </div>
+      <div className="flex h-36 items-center justify-center text-sm text-ink-400">{emptyLabel}</div>
     );
   }
 
@@ -58,8 +60,8 @@ export function DonutChart({
           })}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="text-[11px] text-ink-400">변동 합계</div>
-          <div className="tnum text-lg font-extrabold text-ink-900">{formatWon(totalWon)}</div>
+          <div className="text-[10px] text-ink-400">{centerLabel}</div>
+          <div className="tnum text-base font-extrabold text-ink-900">{formatWon(totalWon)}</div>
         </div>
       </div>
       <ul className="w-full space-y-1.5 text-sm">
