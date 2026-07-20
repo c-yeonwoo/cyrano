@@ -23,26 +23,33 @@ export function AuthForm({
     return (
       <div className={compact ? "space-y-2" : "space-y-3"}>
         <p className="text-sm text-ink-600">
-          지금 이 기기는 <strong>로컬 모드</strong>예요. 로그인·클라우드 저장을 쓰려면
-          Supabase를 연결해야 합니다.
+          Supabase 환경변수가 없어 로그인을 쓸 수 없어요.
         </p>
-        <ol className="list-decimal space-y-1.5 pl-4 text-xs leading-relaxed text-ink-500">
-          <li>
-            터미널에서 <code className="rounded bg-ink-100 px-1">npm run supabase:start</code>
-          </li>
-          <li>
-            <code className="rounded bg-ink-100 px-1">supabase status -o env</code> 의 URL·anon
-            key를 <code className="rounded bg-ink-100 px-1">.env.local</code>에 넣기
-          </li>
-          <li>
-            앱 재시작 후 이메일로 6자리 코드를 받아 로그인
-          </li>
-        </ol>
-        <p className="text-[11px] text-ink-400">
-          클라우드 프로젝트를 쓸 때도 동일하게{" "}
-          <code className="rounded bg-ink-100 px-1">NEXT_PUBLIC_SUPABASE_*</code> 를 설정하면
-          됩니다.
-        </p>
+        <div className="space-y-3 text-xs leading-relaxed text-ink-500">
+          <div>
+            <p className="mb-1 font-semibold text-ink-600">Railway 배포</p>
+            <ol className="list-decimal space-y-1 pl-4">
+              <li>
+                Variables에{" "}
+                <code className="rounded bg-ink-100 px-1">NEXT_PUBLIC_SUPABASE_URL</code> ·{" "}
+                <code className="rounded bg-ink-100 px-1">
+                  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+                </code>{" "}
+                추가
+              </li>
+              <li>저장 후 <strong>Redeploy</strong> (빌드 시 값이 번들에 들어갑니다)</li>
+            </ol>
+          </div>
+          <div>
+            <p className="mb-1 font-semibold text-ink-600">로컬 개발</p>
+            <ol className="list-decimal space-y-1 pl-4">
+              <li>
+                <code className="rounded bg-ink-100 px-1">.env.local</code>에 동일 키 설정
+              </li>
+              <li>앱 재시작 후 이메일 6자리 코드로 로그인</li>
+            </ol>
+          </div>
+        </div>
       </div>
     );
   }

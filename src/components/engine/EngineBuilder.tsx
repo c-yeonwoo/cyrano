@@ -525,7 +525,11 @@ export function EngineBuilder() {
                   ? `약 ${projection.targetReachYear}년`
                   : "시점 내 미도달"
               }
-              sub={vision ? `달성률 ${projection.achievementPct.toFixed(1)}%` : undefined}
+              sub={
+                vision
+                  ? `현재 달성 ${projection.achievementPct.toFixed(1)}% · 지금 순자산÷목표`
+                  : undefined
+              }
             />
             <StatCard
               label={`${targetYears}년 뒤 월 passive`}

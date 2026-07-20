@@ -6,11 +6,6 @@ import type { DayLog, RoutineItem, Tracking } from "./types";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-export const DEFAULT_ROUTINES: Omit<RoutineItem, "id" | "createdAt">[] = [
-  { title: "오늘 지출 기록하기", schedule: "daily", position: 0 },
-  { title: "계좌·이체 한 번 확인", schedule: "daily", position: 1 },
-];
-
 /** 로컬 YYYY-MM-DD */
 export function dateKey(d: Date = new Date()): string {
   const y = d.getFullYear();

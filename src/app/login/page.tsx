@@ -1,22 +1,24 @@
 "use client";
 
-import Link from "next/link";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AuthForm } from "@/components/AuthForm";
 import { HydrationGate } from "@/components/HydrationGate";
 import { Providers } from "@/components/Providers";
 import { LogoMark } from "@/components/Logo";
 import { useAuth } from "@/lib/auth";
+import { useProfile } from "@/lib/store/useProfile";
 import { BRAND } from "@/lib/brand";
-import { useEffect } from "react";
 
 function LoginInner() {
-  const { user, configured } = useAuth();
+  const { user, configured, loading } = useAuth();
   const router = useRouter();
+  const onboardedAt = useProfile((s) => s.profile.onboardedAt);
 
   useEffect(() => {
-    if (user) router.replace("/home");
-  }, [user, router]);
+    if (loading || !user) return;
+    router.replace(onboardedAt ? "/home" : "/onboarding");
+  }, [user, loading, onboardedAt, router]);
 
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-ink-50 px-4 py-10">
@@ -26,16 +28,13 @@ function LoginInner() {
           <div>
             <div className="font-display text-lg font-bold text-ink-900">{BRAND.mark}</div>
             <p className="text-xs text-ink-500">
-              {configured ? "이메일로 로그인 · 클라우드 저장" : "로컬 모드 · Supabase 연결 안내"}
+              {configured ? "이메일로 로그인 · 클라우드 저장" : "Supabase 연결이 필요합니다"}
             </p>
           </div>
         </div>
-        <AuthForm onSuccess={() => router.replace("/home")} />
-        <p className="mt-6 text-center text-xs text-ink-400">
-          <Link href="/home" className="font-semibold text-ink-600 hover:underline">
-            로그인 없이 계속
-          </Link>
-        </p>
+        <AuthForm
+          onSuccess={() => router.replace(onboardedAt ? "/home" : "/onboarding")}
+        />
       </div>
     </div>
   );

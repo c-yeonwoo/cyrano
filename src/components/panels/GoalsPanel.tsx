@@ -109,8 +109,12 @@ export function GoalsPanel() {
               <Field label="현재 나이">
                 <NumberInput
                   value={v.currentAge ?? 0}
-                  onChange={(n) => patch({ currentAge: n })}
+                  onChange={(n) =>
+                    patch({ currentAge: n > 0 ? n : undefined })
+                  }
                   suffix="세"
+                  placeholder="예: 32"
+                  blankZero
                 />
               </Field>
             </div>

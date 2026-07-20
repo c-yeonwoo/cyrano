@@ -36,7 +36,7 @@ export interface SpendingState {
 
 export function emptySpending(): SpendingState {
   return {
-    monthlyVariableBudgetWon: 800_000,
+    monthlyVariableBudgetWon: 0,
     logs: [],
     fixed: [],
     favorites: [],

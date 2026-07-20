@@ -55,11 +55,6 @@ export function AccountMenu({ compact = false }: { compact?: boolean }) {
 
   return (
     <>
-      {!compact && !configured && (
-        <div className="px-3 pb-1 text-[10px] leading-snug text-ink-400">
-          로컬 모드 · 이 기기에만 저장
-        </div>
-      )}
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -71,7 +66,7 @@ export function AccountMenu({ compact = false }: { compact?: boolean }) {
         }
       >
         <Icon name="users" size={16} />
-        {!compact && (configured ? "로그인 · 저장" : "로그인 설정")}
+        {!compact && (configured ? "로그인" : "로그인 연결")}
       </button>
       {open && (
         <div
@@ -83,7 +78,7 @@ export function AccountMenu({ compact = false }: { compact?: boolean }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-1 text-lg font-extrabold text-ink-800">
-              {configured ? "로그인 · 계정에 저장" : "로그인 연결하기"}
+              {configured ? "로그인" : "Supabase 연결"}
             </div>
             <div className="mt-4">
               <AuthForm onSuccess={() => setOpen(false)} />

@@ -156,7 +156,7 @@ export function Palette({
       {/* 0. 수입원 */}
       <div>
         <div className="mb-1.5 text-xs font-bold text-brand-600">0. 수입원 (월수입 왼쪽)</div>
-        <p className="mb-1.5 text-[10px] text-ink-400">샘플은 근로소득 · 나머지는 직접 만들기</p>
+        <p className="mb-1.5 text-[10px] text-ink-400">유형을 고르거나 직접 이름을 지어 추가</p>
         <div className="space-y-1.5">
           {INCOME_PALETTE_PRESETS.map((type) => (
             <div key={type}>

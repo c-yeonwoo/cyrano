@@ -61,9 +61,5 @@ export interface SpendFavorite {
   category: SpendCategory;
 }
 
-export const DEFAULT_FAVORITES: SpendFavorite[] = [
-  { id: "fav_cafe", label: "카페", amountWon: 5000, category: "cafe" },
-  { id: "fav_lunch", label: "점심", amountWon: 10000, category: "food" },
-  { id: "fav_transit", label: "대중교통", amountWon: 1500, category: "transport" },
-  { id: "fav_conv", label: "편의점", amountWon: 3000, category: "living" },
-];
+/** 즐겨찾기 기본값 — 빈 목록 (사용자가 직접 추가) */
+export const DEFAULT_FAVORITES: SpendFavorite[] = [];

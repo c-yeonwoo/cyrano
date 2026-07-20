@@ -15,9 +15,8 @@ import { emptyTracking } from "../types";
 import type { FixedExpense, SpendingState, VariableLog } from "../spending/types";
 import type { SpendCategory, SpendFavorite } from "../spending/catalog";
 import { emptyProfile, ensureSpending } from "./defaults";
-import { seedSpending } from "../spending/seed";
+import { emptySpending } from "../spending/types";
 import {
-  DEFAULT_ROUTINES,
   dateKey,
   hasCheckedInThisWeek,
   normalizeSchedule,
@@ -48,19 +47,6 @@ function ensureTracking(p: Profile): Tracking {
   return normalizeTracking(p.tracking ?? emptyTracking());
 }
 
-function seedDefaultRoutines(t: Tracking): Tracking {
-  if (t.routines.length > 0) return t;
-  const now = new Date().toISOString();
-  return {
-    ...t,
-    routines: DEFAULT_ROUTINES.map((r, i) => ({
-      ...r,
-      id: `r_default_${i}`,
-      createdAt: now,
-    })),
-  };
-}
-
 function migrateBucketLabels(name: string): string {
   if (name === "성장") return "투자";
   if (name === "안전") return "저축";
@@ -69,7 +55,7 @@ function migrateBucketLabels(name: string): string {
 
 function migrateProfile(p: Profile): Profile {
   let next = p;
-  if (!next.spending) next = { ...next, spending: seedSpending() };
+  if (!next.spending) next = { ...next, spending: emptySpending() };
   if (next.snapshot?.incomeSources) {
     next = {
       ...next,
@@ -91,7 +77,7 @@ function migrateProfile(p: Profile): Profile {
       },
     };
   }
-  next = { ...next, tracking: seedDefaultRoutines(ensureTracking(next)) };
+  next = { ...next, tracking: ensureTracking(next) };
   return next;
 }
 
@@ -471,21 +457,9 @@ export const useProfile = create<ProfileState>()(
       setHasHydrated: (v) => set({ hasHydrated: v }),
     }),
     {
-      name: "looplus-profile-v1",
-      storage: createJSONStorage(() => {
-        if (typeof window !== "undefined") {
-          try {
-            const next = "looplus-profile-v1";
-            const prev = "cyrano-profile-v1";
-            if (!localStorage.getItem(next) && localStorage.getItem(prev)) {
-              localStorage.setItem(next, localStorage.getItem(prev)!);
-            }
-          } catch {
-            /* ignore */
-          }
-        }
-        return localStorage;
-      }),
+      // v2: 데모 시드 제거 — 이전 로컬 mock은 이어받지 않음 (로그인이면 클라우드에서 복원)
+      name: "looplus-profile-v2",
+      storage: createJSONStorage(() => localStorage),
       partialize: (st) => ({ profile: st.profile }),
       onRehydrateStorage: () => (state) => {
         if (state && !state.profile.spending) {

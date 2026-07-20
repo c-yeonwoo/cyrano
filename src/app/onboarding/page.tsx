@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useProfile } from "@/lib/store/useProfile";
 import { HydrationGate } from "@/components/HydrationGate";
+import { Providers } from "@/components/Providers";
+import { RequireAuth } from "@/components/RequireAuth";
 import { GoalsPanel } from "@/components/panels/GoalsPanel";
 import { DiagnosisPanel } from "@/components/panels/DiagnosisPanel";
 import { EngineBuilder } from "@/components/engine/EngineBuilder";
@@ -65,9 +67,9 @@ function OnboardingInner() {
               className={clsx(
                 "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-colors",
                 i === step
-                  ? "bg-gold-400 text-brand-900"
+                  ? "bg-gold-100 text-gold-600 ring-1 ring-gold-300"
                   : i < step
-                    ? "bg-gold-100 text-gold-600"
+                    ? "bg-gold-50 text-gold-500"
                     : "bg-ink-100 text-ink-400",
               )}
             >
@@ -149,7 +151,11 @@ function StepHeader({ n, title, desc }: { n: number; title: string; desc: string
 export default function OnboardingPage() {
   return (
     <HydrationGate>
-      <OnboardingInner />
+      <Providers>
+        <RequireAuth>
+          <OnboardingInner />
+        </RequireAuth>
+      </Providers>
     </HydrationGate>
   );
 }

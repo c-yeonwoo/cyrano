@@ -111,18 +111,22 @@ export function NumberInput({
   onChange,
   suffix,
   placeholder,
+  /** true면 0을 빈 칸으로 보여 placeholder가 보이게 함 (나이 등) */
+  blankZero = false,
 }: {
   value: number;
   onChange: (n: number) => void;
   suffix?: string;
   placeholder?: string;
+  blankZero?: boolean;
 }) {
+  const showBlank = blankZero && value === 0;
   return (
     <div className="flex min-w-0 items-center rounded-lg border border-ink-300 bg-white focus-within:border-brand-500 focus-within:ring-1 focus-within:ring-brand-500">
       <input
         inputMode="numeric"
         className="tnum min-w-0 flex-1 rounded-lg bg-transparent px-3 py-2 text-sm text-ink-900 outline-none"
-        value={Number.isFinite(value) ? String(value) : ""}
+        value={showBlank ? "" : Number.isFinite(value) ? String(value) : ""}
         placeholder={placeholder ?? "0"}
         onChange={(e) => {
           const cleaned = e.target.value.replace(/[^0-9.-]/g, "");

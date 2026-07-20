@@ -113,7 +113,7 @@ export function DiagnosisPanel({ showResult = true }: { showResult?: boolean }) 
 
         <QuietSection title="지출 · 비상금">
           <div className="grid grid-cols-2 gap-x-4 gap-y-5">
-            <Field label="월 지출">
+            <Field label="월 지출 (진단 기준)">
               <NumberInput
                 value={s.monthlySpending}
                 onChange={(v) => patch({ monthlySpending: v })}

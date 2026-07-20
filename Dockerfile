@@ -10,6 +10,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# NEXT_PUBLIC_* 는 빌드 시 번들에 인라인됨.
+# Railway는 서비스 Variables를 빌드 환경에 ENV로 주입한다 — Variables 설정 후 Redeploy 필요.
 RUN npm run build
 
 FROM base AS runner

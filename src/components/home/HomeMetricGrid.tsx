@@ -77,7 +77,11 @@ export function HomeMetricGrid({ metrics }: { metrics: HomeMetricValues }) {
   );
 }
 
-/** 스냅샷·지출로 홈 8지표 조립 (만원 기준 formatKRW) */
+/**
+ * 홈 8지표.
+ * 지출·현금흐름 SoT = 진단 `monthlySpending`(만원).
+ * 지출 기록 3개월 평균이 다르면 sub에만 참고로 표시.
+ */
 export function buildHomeMetrics(input: {
   cash: number;
   investAssets: number;
@@ -85,18 +89,29 @@ export function buildHomeMetrics(input: {
   liabilities: number;
   netWorth: number;
   totalMonthlyIncome: number;
+  /** 진단 월지출(만원) — 저축률·단계와 동일 SoT */
+  diagnosisSpendMan: number;
   laborSharePct: number;
   capitalSharePct: number;
   savingsRatePct: number;
   passiveToSpendingPct: number;
-  /** 원 */
-  avgSpendWon3m: number;
+  /** 지출 기록 3개월 평균(원) — 참고용 */
+  recordedAvgSpendWon3m?: number;
 }): HomeMetricValues {
   const totalAssets = input.cash + input.investAssets + input.realEstate;
   const leveragePct =
     totalAssets > 0 ? (input.liabilities / totalAssets) * 100 : 0;
-  const avgSpendMan = input.avgSpendWon3m / 10000;
-  const avgCashflowMan = input.totalMonthlyIncome - avgSpendMan;
+  const spendMan = input.diagnosisSpendMan;
+  const cashflowMan = input.totalMonthlyIncome - spendMan;
+
+  const recordedMan =
+    input.recordedAvgSpendWon3m != null
+      ? input.recordedAvgSpendWon3m / 10000
+      : null;
+  const showRecordedNote =
+    recordedMan != null &&
+    recordedMan > 0 &&
+    Math.abs(recordedMan - spendMan) >= 1;
 
   return {
     totalAssets: {
@@ -113,18 +128,21 @@ export function buildHomeMetrics(input: {
       sub: "부채 ÷ 총자산",
     },
     avgCashflow: {
-      label: "월 평균 현금흐름",
-      value: formatKRW(avgCashflowMan),
-      sub: "지난 3개월 · 수입−지출",
+      label: "월 현금흐름",
+      value: formatKRW(cashflowMan),
+      sub: "수입 − 진단 월지출",
     },
     avgSpend: {
-      label: "월 평균 지출",
-      value: formatKRW(avgSpendMan),
-      sub: "지난 3개월",
+      label: "월 지출",
+      value: formatKRW(spendMan),
+      sub: showRecordedNote
+        ? `진단 기준 · 기록 3개월 평균 ${formatKRW(recordedMan!)}`
+        : "진단(현황) 입력",
     },
     savingsRate: {
       label: "저축률",
       value: formatPct(Math.max(0, input.savingsRatePct), 1),
+      sub: "수입 − 진단 월지출",
     },
     incomeMix: {
       label: "수입구조",
@@ -134,6 +152,7 @@ export function buildHomeMetrics(input: {
     passiveRatio: {
       label: "패시브 / 생활비",
       value: formatPct(input.passiveToSpendingPct, 1),
+      sub: "자본소득 ÷ 진단 월지출",
     },
   };
 }

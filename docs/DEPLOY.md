@@ -64,18 +64,26 @@ npm run verify:supabase
 
 레포에 `Dockerfile` + `railway.toml` + `output: "standalone"` 이 준비되어 있다.
 
-1. [railway.app](https://railway.app)에서 GitHub `c-yeonwoo/cyrano` 연결
-2. 서비스 Variables에 위 env 등록
-3. Deploy → 헬스체크 `GET /api/health`
-4. (CLI) `npm i -g @railway/cli && railway login && railway link && railway up`
+1. [railway.app](https://railway.app)에서 GitHub `c-yeonwoo/looplus` 연결
+2. 서비스 Variables에 위 env 등록 (**필수** — `NEXT_PUBLIC_*` 는 **빌드 시** 번들에 들어감)
+3. Variables 저장 후 **Redeploy** (런타임만 바꿔서는 로그인 UI가 안 열림)
+4. Networking → Generate Domain (포트 **3000**)
+5. Supabase Auth Site URL / Redirect URLs에 Railway 도메인 추가
+6. Deploy → 헬스체크 `GET /api/health`
 
-로컬 Docker 검증:
+로컬 Docker 검증 (빌드 환경에 NEXT_PUBLIC_* 가 있어야 로그인 번들 포함):
 
 ```bash
-docker build -t cyrano .
-docker run --rm -p 3000:3000 cyrano
+export NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_…
+docker build -t looplus .
+docker run --rm -p 3000:3000 looplus
 curl -s http://127.0.0.1:3000/api/health
 ```
+
+> Docker는 호스트 `export`를 자동으로 넘기지 않을 수 있다. 그 경우  
+> `docker build --build-arg NEXT_PUBLIC_SUPABASE_URL --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`  
+> 와 Dockerfile `ARG` 선언이 필요하다. Railway는 Variables를 빌드 ENV로 넣어 주므로 보통 추가 설정 없이 된다.
 
 ---
 

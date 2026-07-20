@@ -27,14 +27,23 @@ export default function HomePage() {
   const { vision, snapshot } = profile;
 
   const spending = ensureSpending(profile);
-  const avgSpendWon3m = useMemo(
+  const recordedAvgSpendWon3m = useMemo(
     () => avgMonthlySpendWon(spending.fixed, spending.logs, 3),
     [spending.fixed, spending.logs],
   );
 
+  const targetYears = vision?.targetYears ?? 15;
+  const hasVision =
+    Boolean(vision) &&
+    ((vision?.goalNetworth ?? 0) > 0 ||
+      (vision?.goalPassiveIncome ?? 0) > 0 ||
+      Boolean(vision?.why?.trim()) ||
+      Boolean(vision?.scenes.some((s) => s.text.trim())));
+
+  // 현황(스냅샷) 없음 — 목표만 있어도 부분 요약
   if (!snapshot || !stage) {
     return (
-      <div className="space-y-5">
+      <div className="mx-auto max-w-3xl space-y-6">
         <div className="flex items-center gap-2.5">
           <LogoMark size={32} />
           <div>
@@ -44,16 +53,53 @@ export default function HomePage() {
             </p>
           </div>
         </div>
-        <EmptyState
-          icon="engine"
-          title="자산 설계로 현재 위치를 잡아봐요"
-          desc="목표와 현황을 넣으면 단계와 다음 할 일이 보여요."
-          action={
-            <Link href="/onboarding">
-              <Button>시작하기</Button>
-            </Link>
-          }
-        />
+
+        {hasVision && vision ? (
+          <>
+            <section className="rounded-2xl bg-brand-900 p-5 text-white md:p-6">
+              <div className="text-xs text-white/45">목표만 있어요</div>
+              <h1 className="mt-1 text-xl font-extrabold tracking-tight">
+                {vision.goalNetworth > 0
+                  ? `목표 ${formatKRW(vision.goalNetworth)}`
+                  : "목표를 이어가요"}
+              </h1>
+              <p className="mt-2 text-sm text-white/55">
+                {vision.goalPassiveIncome > 0 &&
+                  `월 패시브 ${formatKRW(vision.goalPassiveIncome)} · `}
+                {targetYears}년 · 현황을 넣으면 단계·달성률이 계산돼요
+              </p>
+            </section>
+            <VisionBoard vision={vision} />
+            <Card>
+              <EmptyState
+                icon="diagnosis"
+                title="지금 위치를 알려주세요"
+                desc="현금·투자·소득·지출을 넣으면 홈 대시보드가 채워집니다."
+                action={
+                  <div className="flex flex-wrap gap-2">
+                    <Link href="/onboarding">
+                      <Button>현황 입력</Button>
+                    </Link>
+                    <Link href="/goals">
+                      <Button variant="outline">목표 수정</Button>
+                    </Link>
+                  </div>
+                }
+              />
+            </Card>
+          </>
+        ) : (
+          <EmptyState
+            icon="engine"
+            title="자산 설계로 현재 위치를 잡아봐요"
+            desc="목표와 현황을 넣으면 단계와 다음 할 일이 보여요."
+            action={
+              <Link href="/onboarding">
+                <Button>시작하기</Button>
+              </Link>
+            }
+          />
+        )}
       </div>
     );
   }
@@ -61,10 +107,14 @@ export default function HomePage() {
   const m = stage.metrics;
   const tracking = normalizeTracking(profile.tracking ?? emptyTracking());
   const streak = computeDailyStreak(tracking.routines, tracking.logs);
-  const targetYears = vision?.targetYears ?? 15;
   const atYear = projection
     ? projection.curve[Math.min(targetYears, projection.curve.length - 1)]
     : null;
+
+  const goalNw = vision?.goalNetworth ?? 0;
+  const currentAchievePct = projection?.achievementPct ?? 0;
+  const horizonAchievePct =
+    goalNw > 0 && atYear ? (atYear.totalNetWorth / goalNw) * 100 : 0;
 
   const homeMetrics = buildHomeMetrics({
     cash: snapshot.cash,
@@ -73,11 +123,12 @@ export default function HomePage() {
     liabilities: snapshot.liabilities,
     netWorth: m.netWorth,
     totalMonthlyIncome: m.totalMonthlyIncome,
+    diagnosisSpendMan: snapshot.monthlySpending,
     laborSharePct: m.laborSharePct,
     capitalSharePct: m.capitalSharePct,
     savingsRatePct: m.savingsRatePct,
     passiveToSpendingPct: m.passiveToSpendingPct,
-    avgSpendWon3m,
+    recordedAvgSpendWon3m,
   });
 
   return (
@@ -107,7 +158,6 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* 비전보드 */}
       <VisionBoard vision={vision} />
 
       {/* N년 뒤 미리보기 + 지표 */}
@@ -126,18 +176,14 @@ export default function HomePage() {
 
         {projection && profile.engine.buckets.length > 0 && atYear ? (
           <Card className="space-y-4">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <PreviewStat
-                label={`예상 순자산`}
+                label="예상 순자산"
                 value={formatKRW(atYear.totalNetWorth)}
               />
               <PreviewStat
                 label="월 패시브"
                 value={formatKRW(atYear.monthlyPassiveIncome)}
-              />
-              <PreviewStat
-                label="목표 대비"
-                value={formatPct(projection.achievementPct, 1)}
               />
               <PreviewStat
                 label="예상 ETA"
@@ -146,6 +192,20 @@ export default function HomePage() {
                     ? `약 ${projection.targetReachYear}년`
                     : "재조정"
                 }
+              />
+              <PreviewStat
+                label="현재 달성"
+                value={formatAchievePct(currentAchievePct)}
+                sub="지금 순자산 ÷ 목표"
+              />
+              <PreviewStat
+                label={`${targetYears}년 뒤 달성`}
+                value={formatAchievePct(horizonAchievePct)}
+                sub="예상 순자산 ÷ 목표"
+              />
+              <PreviewStat
+                label="목표"
+                value={goalNw > 0 ? formatKRW(goalNw) : "—"}
               />
             </div>
             <AssetChart
@@ -183,7 +243,6 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* 다음 한 걸음 */}
       <Card className="border-sage-100 bg-sage-50">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -209,11 +268,28 @@ export default function HomePage() {
   );
 }
 
-function PreviewStat({ label, value }: { label: string; value: string }) {
+/** 1% 미만도 안 보이도록 자리수 조정 (0.0% 오인 방지) */
+function formatAchievePct(pct: number): string {
+  if (!Number.isFinite(pct) || pct <= 0) return "0%";
+  if (pct < 0.1) return `${pct.toFixed(2)}%`;
+  if (pct < 10) return formatPct(pct, 1);
+  return formatPct(pct, 0);
+}
+
+function PreviewStat({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+}) {
   return (
     <div className="rounded-lg bg-ink-50 px-3 py-2">
       <div className="text-[10px] font-medium text-ink-400">{label}</div>
       <div className="tnum mt-0.5 text-sm font-extrabold text-ink-800">{value}</div>
+      {sub && <div className="mt-0.5 text-[10px] text-ink-400">{sub}</div>}
     </div>
   );
 }

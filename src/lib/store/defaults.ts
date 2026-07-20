@@ -1,6 +1,6 @@
 import type { Bucket, EngineConfig, FinancialSnapshot, Profile, Vision } from "../types";
 import { emptyTracking } from "../types";
-import { seedSpending } from "../spending/seed";
+import { emptySpending } from "../spending/types";
 import { GROUP_PRESETS, ITEM_PRESETS, bucketFromPreset } from "../catalog";
 
 export const DEFAULT_SNAPSHOT: FinancialSnapshot = {
@@ -8,18 +8,15 @@ export const DEFAULT_SNAPSHOT: FinancialSnapshot = {
   investAssets: 0,
   realEstate: 0,
   liabilities: 0,
-  // 근로소득만 샘플 — 나머지는 팔레트에서 커스텀 추가
-  incomeSources: [
-    { id: "inc_labor", type: "labor", monthly: 300, position: 0, name: "근로소득" },
-  ],
+  incomeSources: [],
   monthlySpending: 0,
   emergencyMonths: 0,
 };
 
 export const DEFAULT_VISION: Vision = {
-  goalNetworth: 100000, // 10억
-  goalPassiveIncome: 300, // 월 300만
-  targetYears: 15,
+  goalNetworth: 0,
+  goalPassiveIncome: 0,
+  targetYears: 10,
   currentAge: undefined,
   why: "",
   scenes: [
@@ -37,8 +34,7 @@ export function emptyProfile(): Profile {
     engine: { buckets: [] },
     scenarios: [],
     tracking: emptyTracking(),
-    // 신규 프로필은 데모 시드로 시작 — 빈 화면보다 루프 이해에 도움
-    spending: seedSpending(),
+    spending: emptySpending(),
     uiPrefs: { hiddenHomeMetrics: [] },
     onboardedAt: null,
     updatedAt: new Date(0).toISOString(),
@@ -46,7 +42,7 @@ export function emptyProfile(): Profile {
 }
 
 export function ensureSpending(p: Profile): Profile["spending"] {
-  return p.spending ?? seedSpending();
+  return p.spending ?? emptySpending();
 }
 
 function preset(key: string) {

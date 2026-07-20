@@ -25,7 +25,7 @@ export function SpendingPanel({ initialTab = "summary" }: { initialTab?: TabKey 
         <PageHeader
           icon="wallet"
           title="지출"
-          desc="기록과 예산은 여기서. 자산 설계는 계획 비중을 잡을 때 참고해요."
+          desc="여기는 지출 기록(고정·변동)입니다. 홈·저축률·단계는 진단의「월 지출」을 쓰고, 아래「엔진에 반영」으로 맞출 수 있어요."
         />
         <div className="mt-4 flex gap-1 border-b border-ink-200">
           {TABS.map((t) => (
