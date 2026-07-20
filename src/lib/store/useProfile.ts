@@ -111,6 +111,7 @@ interface ProfileState {
   toggleRoutineDay: (date: string, routineId: string) => void;
   dismissNextStepNudge: (stage: number) => void;
   toggleHomeMetricHidden: (metricId: string) => void;
+  setAutoSyncSpendToDiagnosis: (on: boolean) => void;
 
   setVariableBudget: (won: number) => void;
   addVariableLog: (input: {
@@ -361,6 +362,17 @@ export const useProfile = create<ProfileState>()(
             profile: touch({
               ...st.profile,
               uiPrefs: { ...prefs, hiddenHomeMetrics: [...hidden] },
+            }),
+          };
+        }),
+
+      setAutoSyncSpendToDiagnosis: (on) =>
+        set((st) => {
+          const prefs = st.profile.uiPrefs ?? { hiddenHomeMetrics: [] };
+          return {
+            profile: touch({
+              ...st.profile,
+              uiPrefs: { ...prefs, autoSyncSpendToDiagnosis: on },
             }),
           };
         }),

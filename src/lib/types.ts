@@ -200,6 +200,11 @@ export function emptyTracking(): Tracking {
 export interface UiPrefs {
   /** 홈「자산·현금흐름」타일에서 금액을 가린 metric id */
   hiddenHomeMetrics?: string[];
+  /**
+   * 지출 기록(당월 변동+고정) → 진단 `monthlySpending` 자동 반영.
+   * 기본 false — 사용자가 지출 화면에서 opt-in.
+   */
+  autoSyncSpendToDiagnosis?: boolean;
 }
 
 /** 전체 사용자 프로필 (localStorage / Supabase 공용 shape) */

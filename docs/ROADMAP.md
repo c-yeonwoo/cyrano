@@ -20,9 +20,11 @@
 ✅ **지출관리 (E) v1** + 엔진 실측 연동
 ✅ **홈 정합성** — 진단 SoT · 현재/시점 달성률 · mock 제거
 ✅ **아하→공유→리드 퍼널 UI** · **홈 주간 델타** · **linkedTool 크로스셀 CTA**
+✅ **온보딩 B→A A/B** (기본 70% 진단먼저 · `NEXT_PUBLIC_ONBOARDING_ORDER` 강제 가능)
+✅ **지출→진단 자동동기** opt-in (`uiPrefs.autoSyncSpendToDiagnosis`)
 
 **운영 스위치 (수동):** PostHog / LEAD_URL / Auth Redirect — `docs/DEPLOY.md` 체크리스트.
-**다음 (ROI 순):** 온보딩 B→A A/B · 지출→진단 자동동기 옵션 · AI 코치 · 마이데이터.
+**다음 (ROI 순):** AI 코치 스펙·가드레일 · NL 진단 입력 · 마이데이터 · 이메일 리마인더.
 **아직 없음:** AI 코치 · 자동연동 · 커뮤니티 · 이메일/푸시 리마인더.
 
 ---

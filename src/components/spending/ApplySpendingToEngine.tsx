@@ -11,10 +11,12 @@ import { track } from "@/lib/analytics";
 import { Button, Card } from "@/components/ui";
 import { ConfirmModal } from "@/components/ConfirmModal";
 import { Icon } from "@/components/Icon";
+
 type Source = "summary" | "diagnosis";
 
 /**
- * Phase A — 지출 실측(당월 변동+고정 전체) → snapshot.monthlySpending 수동 반영.
+ * 지출 실측(당월 변동+고정) → snapshot.monthlySpending.
+ * 수동 반영 + 자동동기 opt-in.
  */
 export function ApplySpendingToEngine({
   source,
@@ -25,6 +27,8 @@ export function ApplySpendingToEngine({
 }) {
   const profile = useProfile((s) => s.profile);
   const setSnapshot = useProfile((s) => s.setSnapshot);
+  const setAutoSync = useProfile((s) => s.setAutoSyncSpendToDiagnosis);
+  const autoSync = profile.uiPrefs?.autoSyncSpendToDiagnosis ?? false;
   const spending = selectSpending(profile);
   const snapshot = profile.snapshot ?? DEFAULT_SNAPSHOT;
 
@@ -58,24 +62,61 @@ export function ApplySpendingToEngine({
     setJustApplied(true);
   };
 
+  const toggleAuto = () => {
+    const nextOn = !autoSync;
+    setAutoSync(nextOn);
+    track("spend_auto_sync_toggled", { on: nextOn, source });
+    if (nextOn && !empty && !same) {
+      setSnapshot({ ...snapshot, monthlySpending: next });
+      track("spend_auto_synced", {
+        to: next,
+        variable_won: measured.variableWon,
+        fixed_won: measured.fixedWon,
+        reason: "toggle_on",
+      });
+      setJustApplied(true);
+    }
+  };
+
   const ctaLabel = source === "diagnosis" ? "지출 실측 가져오기" : "엔진에 반영";
+
+  const autoToggle = (
+    <label className="flex cursor-pointer items-center gap-2 text-[11px] text-ink-500">
+      <input
+        type="checkbox"
+        checked={autoSync}
+        onChange={toggleAuto}
+        className="rounded border-ink-300 text-gold-500 focus:ring-gold-400"
+      />
+      <span>
+        기록하면 진단 월지출에 <strong className="font-semibold text-ink-700">자동 반영</strong>
+      </span>
+    </label>
+  );
 
   if (compact) {
     return (
       <>
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-ink-100 bg-ink-50/60 px-3 py-2.5">
-          <p className="text-xs text-ink-500">
-            지출 실측{" "}
-            <span className="tnum font-semibold text-ink-800">{formatKRW(next)}</span>
-            {same || justApplied ? (
-              <span className="ml-1.5 text-sage-700">· 반영됨</span>
-            ) : current > 0 ? (
-              <span className="ml-1.5 text-ink-400">· 현재 {formatKRW(current)}</span>
-            ) : null}
-          </p>
-          <Button onClick={() => setOpen(true)} disabled={empty || same}>
-            {ctaLabel}
-          </Button>
+        <div className="space-y-2 rounded-xl border border-ink-100 bg-ink-50/60 px-3 py-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-ink-500">
+              지출 실측{" "}
+              <span className="tnum font-semibold text-ink-800">{formatKRW(next)}</span>
+              {autoSync ? (
+                <span className="ml-1.5 text-sage-700">· 자동동기</span>
+              ) : same || justApplied ? (
+                <span className="ml-1.5 text-sage-700">· 반영됨</span>
+              ) : current > 0 ? (
+                <span className="ml-1.5 text-ink-400">· 현재 {formatKRW(current)}</span>
+              ) : null}
+            </p>
+            {!autoSync && (
+              <Button onClick={() => setOpen(true)} disabled={empty || same}>
+                {ctaLabel}
+              </Button>
+            )}
+          </div>
+          {autoToggle}
         </div>
         <ConfirmModal
           open={open}
@@ -110,19 +151,23 @@ export function ApplySpendingToEngine({
               <span className="tnum font-extrabold text-ink-900">{formatKRW(next)}</span>
             </p>
             <p className="mt-1 text-xs text-ink-500">
-              현재 {formatKRW(current)}
-              {same && !justApplied && (
+              현재 진단 {formatKRW(current)}
+              {autoSync && <span className="ml-1.5 text-sage-700">· 자동동기 켜짐</span>}
+              {!autoSync && same && !justApplied && (
                 <span className="ml-1.5 text-sage-700">· 이미 같아요</span>
               )}
-              {justApplied && (
+              {!autoSync && justApplied && (
                 <span className="ml-1.5 text-sage-700">· 반영했어요</span>
               )}
             </p>
+            <div className="mt-2.5">{autoToggle}</div>
           </div>
           <div className="flex shrink-0 flex-col items-stretch gap-1.5 sm:items-end">
-            <Button onClick={() => setOpen(true)} disabled={empty || same}>
-              {ctaLabel}
-            </Button>
+            {!autoSync && (
+              <Button onClick={() => setOpen(true)} disabled={empty || same}>
+                {ctaLabel}
+              </Button>
+            )}
             <Link
               href="/engine"
               className="text-center text-[11px] font-medium text-spend-700 hover:underline"
@@ -157,8 +202,8 @@ export function ApplySpendingToEngine({
               </li>
               <li>원 → 만원은 버림 ({formatWon(measured.totalWon)} → {next}만)</li>
               <li>
-                단계·저축률에 바로 쓰입니다. 배분 비율은 자산 설계의 「실측 기준 제안」에서
-                따로 맞출 수 있어요.
+                단계·저축률·홈 월지출에 바로 쓰입니다. 자동동기를 켜면 이후 기록마다
+                맞춰집니다.
               </li>
             </ul>
           </div>

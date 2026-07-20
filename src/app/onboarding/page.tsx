@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useProfile } from "@/lib/store/useProfile";
 import { HydrationGate } from "@/components/HydrationGate";
@@ -10,48 +10,78 @@ import { GoalsPanel } from "@/components/panels/GoalsPanel";
 import { DiagnosisPanel } from "@/components/panels/DiagnosisPanel";
 import { EngineBuilder } from "@/components/engine/EngineBuilder";
 import { Button } from "@/components/ui";
-import { Icon, type IconName } from "@/components/Icon";
+import { Icon } from "@/components/Icon";
 import { Logo } from "@/components/Logo";
 import { clsx } from "@/lib/clsx";
 import { track, trackOnboardingStartedOnce } from "@/lib/analytics";
-
-const STEPS: { key: string; label: string; icon: IconName }[] = [
-  { key: "goals", label: "목표·비전", icon: "target" },
-  { key: "diagnosis", label: "현재 진단", icon: "diagnosis" },
-  { key: "engine", label: "자산 설계", icon: "engine" },
-];
+import {
+  resolveOnboardingOrder,
+  stepsForOrder,
+  type OnboardingOrder,
+} from "@/lib/onboardingOrder";
 
 function OnboardingInner() {
   const router = useRouter();
+  const [order, setOrder] = useState<OnboardingOrder | null>(null);
   const [step, setStep] = useState(0);
   const completeOnboarding = useProfile((s) => s.completeOnboarding);
 
+  const steps = useMemo(
+    () => (order ? stepsForOrder(order) : []),
+    [order],
+  );
+
   useEffect(() => {
+    const o = resolveOnboardingOrder();
+    setOrder(o);
     trackOnboardingStartedOnce();
+    track("onboarding_order_assigned", { order: o });
   }, []);
 
   useEffect(() => {
-    track("onboarding_step_viewed", { step: STEPS[step].key, step_index: step });
-  }, [step]);
+    if (!order || !steps[step]) return;
+    track("onboarding_step_viewed", {
+      step: steps[step].key,
+      step_index: step,
+      order,
+    });
+  }, [step, order, steps]);
+
+  if (!order || steps.length === 0) {
+    return (
+      <div className="flex h-screen items-center justify-center text-sm text-ink-400">
+        불러오는 중…
+      </div>
+    );
+  }
+
+  const current = steps[step]!;
 
   const finish = (skipped: boolean) => {
-    if (skipped) track("onboarding_skipped", { from_step: STEPS[step].key });
-    else track("onboarding_completed", { last_step: STEPS[step].key });
+    if (skipped) {
+      track("onboarding_skipped", { from_step: current.key, order });
+    } else {
+      track("onboarding_completed", { last_step: current.key, order });
+    }
     completeOnboarding();
     router.push("/home");
   };
 
   const goNext = () => {
-    track("onboarding_step_completed", { step: STEPS[step].key, step_index: step });
+    track("onboarding_step_completed", {
+      step: current.key,
+      step_index: step,
+      order,
+    });
     setStep((s) => s + 1);
   };
 
   return (
     <div className="mx-auto min-h-screen w-full max-w-[1680px] px-5 py-6 md:px-8 lg:px-10">
-      {/* Stepper */}
       <div className="mb-6 flex items-center justify-between">
         <Logo />
         <button
+          type="button"
           onClick={() => finish(true)}
           className="flex items-center gap-1 text-xs text-ink-400 hover:text-ink-600"
         >
@@ -60,9 +90,10 @@ function OnboardingInner() {
       </div>
 
       <div className="mb-6 flex items-center gap-2">
-        {STEPS.map((s, i) => (
+        {steps.map((s, i) => (
           <div key={s.key} className="flex flex-1 items-center gap-2">
             <button
+              type="button"
               onClick={() => setStep(i)}
               className={clsx(
                 "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-colors",
@@ -76,57 +107,34 @@ function OnboardingInner() {
               <Icon name={s.icon} size={16} />
               <span className="hidden sm:inline">{s.label}</span>
             </button>
-            {i < STEPS.length - 1 && <div className="h-px flex-1 bg-ink-200" />}
+            {i < steps.length - 1 && <div className="h-px flex-1 bg-ink-200" />}
           </div>
         ))}
       </div>
 
       <div className="mb-6">
-        {step === 0 && (
-          <>
-            <StepHeader
-              n={1}
-              title="미래의 나를 그려요"
-              desc="왜 경제적 자유를 원하는지, 얼마를 언제까지. 목표는 언제든 수정할 수 있어요."
-            />
-            <GoalsPanel />
-          </>
-        )}
-        {step === 1 && (
-          <>
-            <StepHeader
-              n={2}
-              title="지금 내 위치를 확인해요"
-              desc="최소만 입력해도 됩니다. 자산 설계와 같은 숫자를 씁니다."
-            />
-            <DiagnosisPanel />
-          </>
-        )}
-        {step === 2 && (
-          <>
-            <StepHeader
-              n={3}
-              title="돈을 어디에 나눌까요"
-              desc="항목을 추가하고 비율만 맞추면, 몇 년 뒤 자산이 바로 보입니다."
-            />
-            <EngineBuilder />
-          </>
-        )}
+        <StepHeader n={step + 1} title={current.title} desc={current.desc} />
+        {current.key === "goals" && <GoalsPanel />}
+        {current.key === "diagnosis" && <DiagnosisPanel />}
+        {current.key === "engine" && <EngineBuilder />}
       </div>
 
-      {/* Nav */}
       <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-ink-200 bg-white/95 py-3 backdrop-blur">
-        <Button variant="ghost" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>
+        <Button
+          variant="ghost"
+          onClick={() => setStep((s) => Math.max(0, s - 1))}
+          disabled={step === 0}
+        >
           이전
         </Button>
-        {step < STEPS.length - 1 ? (
+        {step < steps.length - 1 ? (
           <Button onClick={goNext}>
-            {step === 0 ? "다음" : "자산 설계로"}
+            {current.nextLabel}
             <Icon name="arrow-right" size={15} />
           </Button>
         ) : (
           <Button onClick={() => finish(false)}>
-            완료 · 홈으로 <Icon name="arrow-right" size={15} />
+            {current.nextLabel} <Icon name="arrow-right" size={15} />
           </Button>
         )}
       </div>

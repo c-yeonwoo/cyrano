@@ -22,6 +22,7 @@ export type AnalyticsEvent =
   | "onboarding_step_completed"
   | "onboarding_skipped"
   | "onboarding_completed"
+  | "onboarding_order_assigned"
   | "page_viewed"
   | "engine_recommend_applied"
   | "aha_engine_allocated"
@@ -37,6 +38,8 @@ export type AnalyticsEvent =
   | "spend_logged"
   | "budget_pace_viewed"
   | "spend_applied_to_engine"
+  | "spend_auto_sync_toggled"
+  | "spend_auto_synced"
   | "spend_ratio_suggestion_applied"
   | "engine_budget_to_variable_applied"
   | "budget_overpace_engine_link";
@@ -194,6 +197,7 @@ export const ANALYTICS_EVENTS: AnalyticsEvent[] = [
   "onboarding_step_completed",
   "onboarding_skipped",
   "onboarding_completed",
+  "onboarding_order_assigned",
   "page_viewed",
   "engine_recommend_applied",
   "aha_engine_allocated",
@@ -209,6 +213,8 @@ export const ANALYTICS_EVENTS: AnalyticsEvent[] = [
   "spend_logged",
   "budget_pace_viewed",
   "spend_applied_to_engine",
+  "spend_auto_sync_toggled",
+  "spend_auto_synced",
   "spend_ratio_suggestion_applied",
   "engine_budget_to_variable_applied",
   "budget_overpace_engine_link",
