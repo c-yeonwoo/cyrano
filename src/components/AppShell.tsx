@@ -23,6 +23,8 @@ const NAV: NavItem[] = [
   { href: "/goals", label: "목표", icon: "target" },
   { href: "/spending", label: "지출", icon: "wallet" },
 ];
+/** NAV 배열에서 1차(홈·설계·실천) 개수 — 이후는 구분선 아래 2차 */
+const PRIMARY_NAV_COUNT = 3;
 
 const MOBILE_NAV: NavItem[] = [
   { href: "/home", label: "홈", icon: "home" },
@@ -97,23 +99,34 @@ export function AppShell({ children }: { children: ReactNode }) {
         )}
 
         <nav className="flex flex-col gap-0.5">
-          {NAV.map((n) => (
-            <Link
-              key={n.href}
-              href={n.href}
-              title={n.label}
-              aria-current={isActive(n.href) ? "page" : undefined}
-              className={clsx(
-                "flex items-center rounded-lg text-[14px] transition-colors",
-                collapsed ? "justify-center px-0 py-2.5" : "gap-2.5 px-3 py-2",
-                isActive(n.href)
-                  ? "bg-gold-50 font-semibold text-gold-600"
-                  : "font-medium text-ink-600 hover:bg-ink-100",
+          {NAV.map((n, i) => (
+            <div key={n.href}>
+              {i === PRIMARY_NAV_COUNT && (
+                <div
+                  className={clsx(
+                    "my-2 border-t border-ink-100",
+                    collapsed ? "mx-1" : "mx-2",
+                  )}
+                />
               )}
-            >
-              <Icon name={n.icon} size={18} />
-              {!collapsed && n.label}
-            </Link>
+              <Link
+                href={n.href}
+                title={n.label}
+                aria-current={isActive(n.href) ? "page" : undefined}
+                className={clsx(
+                  "flex items-center rounded-lg text-[14px] transition-colors",
+                  collapsed ? "justify-center px-0 py-2.5" : "gap-2.5 px-3 py-2",
+                  isActive(n.href)
+                    ? "bg-gold-50 font-semibold text-gold-600"
+                    : i < PRIMARY_NAV_COUNT
+                      ? "font-medium text-ink-600 hover:bg-ink-100"
+                      : "font-medium text-ink-400 hover:bg-ink-100 hover:text-ink-600",
+                )}
+              >
+                <Icon name={n.icon} size={18} />
+                {!collapsed && n.label}
+              </Link>
+            </div>
           ))}
         </nav>
         <div className="mt-auto space-y-2 border-t border-ink-100 pt-3">

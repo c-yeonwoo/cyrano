@@ -208,17 +208,30 @@ export default function HomePage() {
         </div>
 
         {!hasNumericGoal ? (
-          <Card className="border-gold-200 bg-gold-50">
-            <EmptyState
-              icon="target"
-              title="목표 숫자를 먼저 정해요"
-              desc="순자산·패시브 목표 없이 억 단위 곡선만 보면 오해가 생겨요. 참고선만 있어도 충분합니다."
-              action={
-                <Link href="/goals">
-                  <Button>목표 정하기</Button>
-                </Link>
-              }
-            />
+          <Card className="space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-gold-50 px-4 py-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 text-sm font-bold text-gold-700">
+                  <Icon name="target" size={15} />
+                  목표 숫자를 먼저 정해요
+                </div>
+                <p className="mt-1 text-xs text-ink-500">
+                  순자산·패시브 목표가 없으면 억 단위 곡선은 참고용일 뿐이에요.
+                </p>
+              </div>
+              <Link href="/goals" className="shrink-0">
+                <Button>
+                  목표 정하기 <Icon name="arrow-right" size={14} />
+                </Button>
+              </Link>
+            </div>
+            {projection && profile.engine.buckets.length > 0 && atYear && (
+              <AssetChart
+                curve={projection.curve.slice(0, targetYears + 1)}
+                height={180}
+                compact
+              />
+            )}
           </Card>
         ) : showProjectionHero && projection && atYear ? (
           <Card className="space-y-4">
@@ -278,6 +291,9 @@ export default function HomePage() {
         )}
       </section>
 
+      {/* 비전보드 — 미리보기(히어로) 다음의 secondary */}
+      {vision && <VisionBoard vision={vision} />}
+
       <Card className="border-sage-100 bg-sage-50">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -299,9 +315,6 @@ export default function HomePage() {
       </Card>
 
       <HomeMetricGrid metrics={homeMetrics} />
-
-      {/* 비전보드는 secondary */}
-      {vision && <VisionBoard vision={vision} />}
 
       <LeadCta placement="home_retention" />
       {!engineSumOk && profile.engine.buckets.length > 0 && (
